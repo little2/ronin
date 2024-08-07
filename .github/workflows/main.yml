@@ -1,12 +1,12 @@
-name: Deploy Telethon 
+name: Deploy Telethon
 
 on: 
   schedule:
-   - cron: '*/30 * * * *' 
+    - cron: '*/30 * * * *'  # 每30分钟触发一次
   push: 
     branches: 
-      - master 
-  workflow_dispatch: # 添加这一行以支持手动触发
+      - master  # 当推送到 master 分支时触发
+  workflow_dispatch:  # 支持手动触发
 
 jobs:
   run-telethon-bot:
@@ -32,7 +32,7 @@ jobs:
         SESSION_PASSWORD: ${{ secrets.SESSION_PASSWORD }}
       run: |
         openssl aes-256-cbc -d -pbkdf2 -in "${{ secrets.API_ID }}session_name.session.enc" -out "${{ secrets.API_ID }}session_name.session" -pass pass:"${{ secrets.SESSION_PASSWORD }}"
-            
+
     - name: Get previous workflow run ID
       uses: actions/github-script@v6
       id: get-previous-run-id
@@ -41,7 +41,7 @@ jobs:
           const runs = await github.rest.actions.listWorkflowRuns({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            workflow_id: 'main.yml',  
+            workflow_id: 'main.yml',  // 使用 main.yml 作为 workflow_id
             per_page: 1,
             status: 'success',
           });
@@ -72,7 +72,7 @@ jobs:
         WAREHOUSE_CHAT_ID: ${{ secrets.WAREHOUSE_CHAT_ID }}
         LINK_CHAT_ID: ${{ secrets.LINK_CHAT_ID }}
       run: |
-        python hello.py
+        python go.py
 
     - name: Check if last_read_message_id.json was created
       run: |
@@ -82,12 +82,33 @@ jobs:
           echo "last_read_message_id.json was not created."
         fi
 
-
     - name: Upload last_read_message_id.json artifact
       uses: actions/upload-artifact@v4
       with:
         name: last_read_message
         path: last_read_message_id.json
-    
 
-        
+    - name: Delete old workflow runs
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # 使用个人访问令牌
+        script: |
+          const runs = await github.rest.actions.listWorkflowRuns({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            workflow_id: 'main.yml',  // 使用 main.yml 作为 workflow_id
+            per_page: 100,  // 获取最多100个运行
+          });
+
+          console.log('Found workflow runs:', runs.data.workflow_runs.length);
+
+          const runIdsToDelete = runs.data.workflow_runs.slice(4).map(run => run.id);
+
+          for (const runId of runIdsToDelete) {
+            await github.rest.actions.deleteWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId,
+            });
+            console.log(`Deleted workflow run with ID: ${runId}`);
+          }
