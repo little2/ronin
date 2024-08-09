@@ -311,7 +311,7 @@ class LYClass:
         
     def check_strings(self,text):
         # 将字串以,分割成数组  # 定义要检查的关键词
-        kw = self.config['key_word']
+        kw = str(self.config['key_word'])
         keywords = kw.split(",")
         # 编译正则表达式模式
         pattern = re.compile("|".join(keywords))
