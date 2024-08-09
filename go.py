@@ -32,7 +32,8 @@ try:
         'work_chat_id': int(os.getenv('WORK_CHAT_ID', 0)),  # 默认值为0
         'public_bot_id': os.getenv('PUBLIC_BOT_ID'),
         'warehouse_chat_id': int(os.getenv('WAREHOUSE_CHAT_ID', 0)),  # 默认值为0
-        'link_chat_id': int(os.getenv('LINK_CHAT_ID', 0))
+        'link_chat_id': int(os.getenv('LINK_CHAT_ID', 0)),
+        'key_word': os.getenv('KEY_WORD'),
     }
 
     # 创建 LYClass 实例
@@ -116,7 +117,7 @@ async def main():
                 else:
                     last_read_message_id = tgbot.load_last_read_message_id(entity.id)
 
-                print(f">Reading messages from entity {entity.id}/{entity_title} - {last_read_message_id}\n")
+                # print(f">Reading messages from entity {entity.id}/{entity_title} - {last_read_message_id}\n")
                 async for message in client.iter_messages(entity, min_id=last_read_message_id, limit=50, reverse=True, filter=InputMessagesFilterEmpty()):
                     NEXT_MESSAGE = False
 
