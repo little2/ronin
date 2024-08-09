@@ -310,9 +310,9 @@ class LYClass:
             return last_message_id
         
     def check_strings(self,text):
-        # 定义要检查的关键词
-        keywords = ["弟","正太","兄妹","射精","小马","母子","晓马","姐弟","雏鸟","boy","火狼"]
-        # keywords = ['姐弟']
+        # 将字串以,分割成数组  # 定义要检查的关键词
+        kw = self.config['key_word']
+        keywords = kw.split(",")
         # 编译正则表达式模式
         pattern = re.compile("|".join(keywords))
         # 查找文本中匹配的关键词
