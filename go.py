@@ -85,7 +85,7 @@ async def main():
 
             # 设一个黑名单列表，如果 entity.id 在黑名单列表中，则跳过 
             blacklist = [2131062766, 1766929647, 1781549078, 6701952909, 6366395646,93372553,2197546676]  # Example blacklist with entity IDs
-            # blacklist = [2131062766, 1766929647, 1781549078, 6701952909, 6366395646,93372553,2215190216,2239552986,2215190216,2171778803,1704752058]
+            # blacklist = [2154650877,2190384328,2098764817,1647589965,1731239234,1877274724,2131062766, 1766929647, 1781549078, 6701952909, 6366395646,93372553,2215190216,2239552986,2215190216,2171778803,1704752058]
 
             enclist = [2012816724,2239552986,2215190216,7061290326] 
 
@@ -94,7 +94,9 @@ async def main():
             if entity.id in blacklist:
                 NEXT_DIALOGS = True
                 continue                
-                
+        
+            if entity.id != 7361527575:
+                continue
            
             # 打印处理的实体名称（频道或群组的标题）
             if isinstance(entity, Channel) or isinstance(entity, Chat):
@@ -116,11 +118,11 @@ async def main():
                     last_read_message_id = 0
                 else:
                     last_read_message_id = tgbot.load_last_read_message_id(entity.id)
-
+                
                 # print(f">Reading messages from entity {entity.id}/{entity_title} - {last_read_message_id}\n")
                 async for message in client.iter_messages(entity, min_id=last_read_message_id, limit=50, reverse=True, filter=InputMessagesFilterEmpty()):
                     NEXT_MESSAGE = False
-
+                   
                     if message.id <= last_read_message_id:
                         continue
                    
@@ -128,7 +130,7 @@ async def main():
                    
                     
                     if message.media and not isinstance(message.media, MessageMediaWebPage):
-                        # print(f">>>Reading Media from entity {entity.id}/{entity_title} - {message}\n")
+                       
                         if tgbot.config['warehouse_chat_id']!=0 and entity.id != tgbot.config['work_chat_id'] and entity.id != tgbot.config['warehouse_chat_id']:
                             
                             if media_count >= max_media_count:
@@ -147,6 +149,13 @@ async def main():
                             print(f"Media from {tgbot.config['warehouse_chat_id']} {entity.id} {tgbot.config['work_chat_id']} \n")
 
                     elif message.text:
+                       
+                        if message.text.startswith("|_kick_|"):
+                            botname = message.text[len("|_kick_|"):]
+                            await tgbot.client.send_message(botname, "/start")
+                            
+
+
                         # print(f">>>Reading TEXT from entity {entity.id}/{entity_title} - {message}\n")
                         regex1 = r"https?://t\.me/(?:joinchat/)?\+?[a-zA-Z0-9_\-]{15,50}"
                         regex2 = r"(?<![a-zA-Z0-9_\-])\+[a-zA-Z0-9_\-]{15,17}(?![a-zA-Z0-9_\-])"
