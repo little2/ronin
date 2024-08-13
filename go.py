@@ -95,8 +95,7 @@ async def main():
                 NEXT_DIALOGS = True
                 continue                
         
-            if entity.id != 7361527575:
-                continue
+
            
             # 打印处理的实体名称（频道或群组的标题）
             if isinstance(entity, Channel) or isinstance(entity, Chat):
@@ -119,7 +118,7 @@ async def main():
                 else:
                     last_read_message_id = tgbot.load_last_read_message_id(entity.id)
                 
-                # print(f">Reading messages from entity {entity.id}/{entity_title} - {last_read_message_id}\n")
+                print(f">Reading messages from entity {entity.id}/{entity_title} - {last_read_message_id}\n")
                 async for message in client.iter_messages(entity, min_id=last_read_message_id, limit=50, reverse=True, filter=InputMessagesFilterEmpty()):
                     NEXT_MESSAGE = False
                    
@@ -151,9 +150,17 @@ async def main():
                     elif message.text:
                        
                         if message.text.startswith("|_kick_|"):
-                            botname = message.text[len("|_kick_|"):]
-                            await tgbot.client.send_message(botname, "/start")
+                            try:
+                                botname = message.text[len("|_kick_|"):]
+                                print(f"Kicking bot {botname} from {entity.id}/{entity_title}")
+                                await tgbot.client.send_message(botname, "/start")
+                            except Exception as e:
+                                print(f"Error kicking bot: {e}")
                             
+                            finally:
+                                NEXT_MESSAGE = True
+                                continue
+                                break
 
 
                         # print(f">>>Reading TEXT from entity {entity.id}/{entity_title} - {message}\n")
