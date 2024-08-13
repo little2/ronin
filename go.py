@@ -114,17 +114,23 @@ async def main():
                 time.sleep(0.5)  # 每次请求之间等待0.5秒
 
                 if entity.id == tgbot.config['work_chat_id']:
-                    last_read_message_id = 0
+                    last_read_message_id = 14244
                 else:
                     last_read_message_id = tgbot.load_last_read_message_id(entity.id)
                 
-                print(f">Reading messages from entity {entity.id}/{entity_title} - {last_read_message_id}\n")
+
+
+                
+                print(f"\r\n>Reading messages from entity {entity.id}/{entity_title} - {last_read_message_id}\n")
                 async for message in client.iter_messages(entity, min_id=last_read_message_id, limit=50, reverse=True, filter=InputMessagesFilterEmpty()):
                     NEXT_MESSAGE = False
                    
                     if message.id <= last_read_message_id:
                         continue
                    
+                    
+                        
+
                     last_message_id = message.id  # 初始化 last_message_id
                    
                     
@@ -145,14 +151,22 @@ async def main():
                             count_per_chat = count_per_chat +1
                             last_read_message_id = last_message_id
                         else:
-                            print(f"Media from {tgbot.config['warehouse_chat_id']} {entity.id} {tgbot.config['work_chat_id']} \n")
+                            if tgbot.config['warehouse_chat_id']!=0:
+                                print(f"Media from warehouse is empty \n")
+                            elif entity.id == tgbot.config['work_chat_id']:
+                                print(f"skipping work_chat\n")
+                            elif entity.id == tgbot.config['warehouse_chat_id']:
+                                print(f"skipping warehouse\n")
+
+                                
+                           
 
                     elif message.text:
                        
                         if message.text.startswith("|_kick_|"):
                             try:
                                 botname = message.text[len("|_kick_|"):]
-                                print(f"Kicking bot {botname} from {entity.id}/{entity_title}")
+                               
                                 await tgbot.client.send_message(botname, "/start")
                             except Exception as e:
                                 print(f"Error kicking bot: {e}")
@@ -160,7 +174,7 @@ async def main():
                             finally:
                                 NEXT_MESSAGE = True
                                 continue
-                                break
+                               
 
 
                         # print(f">>>Reading TEXT from entity {entity.id}/{entity_title} - {message}\n")
@@ -213,7 +227,7 @@ async def main():
                                     # print(f"===============\n{message}\n===============\n")
                                     await tgbot.process_by_check_text(message,'encstr')
                             else:    
-                                if '赏鲸' in message.text:
+                                if '海水浴场' in message.text:
 
                                     if entity.id in skip_vaildate_list:
                                         continue
@@ -249,14 +263,14 @@ async def main():
 
 
         if NEXT_CYCLE:
-            print(f"/nExecution time exceeded {max_process_time} seconds. Stopping./n")
+            print(f"\nExecution time exceeded {max_process_time} seconds. Stopping.\n")
             break
         
 
 
 
-        print("/nExecution time is " + str(elapsed_time) + " seconds. Continuing next cycle... after 80 seconds./n")
-        await asyncio.sleep(180)  # 间隔80秒
+        print("\nExecution time is " + str(elapsed_time) + " seconds. Continuing next cycle... after 180 seconds.\n")
+        await asyncio.sleep(180)  # 间隔180秒
         media_count = 0
 
 with client:
