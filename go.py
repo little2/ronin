@@ -173,7 +173,7 @@ async def main():
                             
                             finally:
                                 NEXT_MESSAGE = True
-                                continue
+                                
                                
 
 
