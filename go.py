@@ -235,11 +235,13 @@ async def main():
                                     if isinstance(entity, Channel) or isinstance(entity, Chat):
                                         entity_title = entity.title
 
-                                    sender = await client.get_entity(message.from_id)
-                                    text = "|_SendToProve_|\n"+str(sender.first_name)+"\n"+str(entity_title)+"\n"+str(sender.id)
-                                    # print(f"===============\n{text}\n===============\n")
-                                    async with tgbot.client.conversation(tgbot.config['work_bot_id']) as conv:
-                                        await conv.send_message(text)
+                                    if message.from_id is not None:
+                                        sender = await client.get_entity(message.from_id)
+                                        text = "|_SendToProve_|\n" + str(sender.first_name) + "\n" + str(entity_title) + "\n" + str(sender.id)
+                                        async with tgbot.client.conversation(tgbot.config['work_bot_id']) as conv:
+                                            await conv.send_message(text)
+                                    else:
+                                        print(f"Message from entity {entity.id} has no sender.")
                                 else:
                                     await tgbot.process_by_check_text(message,'encstr')
 
