@@ -48,6 +48,7 @@ except ValueError:
 max_process_time = 1200  # 20分钟
 max_media_count = 50  # 10个媒体文件
 max_count_per_chat = 10  # 每个对话的最大消息数
+max_break_time = 150  # 休息时间
 
 
 
@@ -271,8 +272,8 @@ async def main():
 
 
 
-        print("\nExecution time is " + str(elapsed_time) + " seconds. Continuing next cycle... after 180 seconds.\n")
-        await asyncio.sleep(180)  # 间隔180秒
+        print("\nExecution time is " + str(elapsed_time) + f" seconds. Continuing next cycle... after {max_break_time} seconds.\n")
+        await asyncio.sleep(max_break_time)  # 间隔180秒
         media_count = 0
 
 with client:
