@@ -21,7 +21,6 @@ session_name = api_id + 'session_name'  # 确保与上传的会话文件名匹�
 # 创建客户端
 client = TelegramClient(session_name, api_id, api_hash)
 
-
 try:
     config = {
         'api_id': os.getenv('API_ID'),
@@ -59,7 +58,8 @@ async def main():
     media_count = 0
     
     try:
-        await tgbot.client.send_message(tgbot.config['work_bot_id'], "Hello! I'm ready to work.")
+         
+        await tgbot.client.send_message(tgbot.config['work_bot_id'], "/start")
     except Exception as e:
         print(f"Error sending message to work_bot_id: {e}")
         return
