@@ -80,7 +80,13 @@ class LYClass:
 
         if message.from_id:
             sender = await client.get_entity(message.from_id)
-            sender_title = f"{sender.first_name} {sender.last_name}"
+
+            sender_title = f"{sender.first_name}"
+
+            # if sender.last_name is not None then sender_title = f"{sender.first_name} {sender.last_name}"
+            if sender.last_name:
+                sender_title = f"{sender.first_name} {sender.last_name}"
+
             if sender.username:
                 caption_parts.append(f"Original: <a href='https://t.me/{sender.username}'>{sender_title}</a>")
             else:
@@ -146,18 +152,18 @@ class LYClass:
                     if filetobot_response.media:
                         break
                     else:
-                        print("Received text response, waiting for media...")
+                        print(">>>Received text response, waiting for media...")
 
             except asyncio.TimeoutError:
                 await client.send_message(self.config['work_chat_id'], "filetobot timeout", reply_to=original_message_id)
                 print("filetobot response timeout.")
                 return
 
-            # 将 filetobot 的响应内容传送给 beachboy807bot，并设置 caption 为原始消息的文本
+            # 将 filetobot 的响应内容传送给 public_bot_id，并设置 caption 为原始消息的文本
             async with client.conversation(self.config['public_bot_id']) as publicbot_conv:
                 caption_text = "|_SendToBeach_|\n"+original_message.text+"\n"+filetobot_response.message
                 await publicbot_conv.send_file(filetobot_response.media, caption=caption_text)
-                print("Forwarded filetobot response to publish bot with caption.")
+                print(">>>>Forwarded filetobot response to publish bot with caption.")
 
     async def wpbot(self, client, message, bot_username):
         try:
@@ -187,7 +193,7 @@ class LYClass:
                             # 处理视频
                             video = response.media.document
                             await client.send_file(chat_id, video, reply_to=message.id)
-                            print("Forwarded video.")
+                            print(">>>Forwarded video.")
                             
                             # 调用新的函数
                             await self.send_video_to_filetobot_and_publish(client, video, message)
@@ -213,9 +219,10 @@ class LYClass:
                     # 处理文本
                     if response.text == "在您发的这条消息中，没有代码可以被解析":
                         await self.wpbot(self.client, message, 'ShowFilesBot')
-                       
                     elif "💔抱歉，未找到可解析内容。" in response.text:
-                        await client.send_message(chat_id, response.text, reply_to=message.id)
+                        await client.send_message(chat_id, response.text, reply_to=message.id)   
+                    elif "不能为你服务" in response.text:
+                        await client.send_message(chat_id, "the bot was timeout", reply_to=message.id)
                         
                     elif response.text == "创建者申请了新的分享链接，此链接已过期":
                         await self.wpbot(self.client, message, 'ShowFilesBot')
