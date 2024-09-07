@@ -196,22 +196,22 @@ class LYClass:
                             print(">>>Forwarded video.")
                             
                             # 调用新的函数
-                            await self.send_video_to_filetobot_and_publish(client, video, message)
+                            #await self.send_video_to_filetobot_and_publish(client, video, message)
                         else:
                             # 处理文档
                             document = response.media.document
                             await client.send_file(chat_id, document, reply_to=message.id)
 
-                            caption_text = "|_SendToBeach_|\n"+message.text
-                            await client.send_file(self.config['public_bot_id'], document, caption=caption_text)
+                            #caption_text = "|_SendToBeach_|\n"+message.text
+                            #await client.send_file(self.config['public_bot_id'], document, caption=caption_text)
                             print("Forwarded document.")
                     elif isinstance(response.media, types.MessageMediaPhoto):
                         # 处理图片
                         photo = response.media.photo
                         await client.send_file(chat_id, photo, reply_to=message.id)
 
-                        caption_text = "|_SendToBeach_|\n"+message.text
-                        await client.send_file(self.config['public_bot_id'], photo, caption=caption_text)
+                        #caption_text = "|_SendToBeach_|\n"+message.text
+                        #await client.send_file(self.config['public_bot_id'], photo, caption=caption_text)
                         print("Forwarded photo.")
                     else:
                         print("Received media, but not a document, video, or photo.")
@@ -256,6 +256,13 @@ class LYClass:
             with open(self.LAST_READ_MESSAGE_FILE, 'r') as file:
                 data = json.load(file)
                 return data.get(str(chat_id), 0)  # 返回 0 作为默认值
+        return 0
+    
+    def get_last_read_message_content(self):
+        if os.path.exists(self.LAST_READ_MESSAGE_FILE):
+            with open(self.LAST_READ_MESSAGE_FILE, 'r') as file:
+                data = json.load(file)
+                return data
         return 0
 
     async def join_channel_from_link(self, client, invite_link):
