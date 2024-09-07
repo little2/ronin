@@ -2,7 +2,7 @@ name: Deploy Telethon
 
 on: 
   schedule:
-    - cron: '*/30 * * * *'  # 每30分钟触发一次
+    - cron: '*/15 * * * *'  # 每15分钟触发一次
   push: 
     branches: 
       - master  # 当推送到 master 分支时触发
@@ -12,9 +12,41 @@ jobs:
   run-telethon-bot:
     runs-on: ubuntu-latest
 
+    # concurrency:
+    #   group: my-workflow-${{ github.ref }}  # 设定并发组
+    #   cancel-in-progress: true             # 保留旧的工作流，取消新的
+
     steps:
+    # 步骤 1: Checkout 代码仓库
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Check for running workflows
+      uses: actions/github-script@v6
+      id: check-running
+      with:
+        script: |
+          const currentRunId = context.runId;  // 获取当前工作流的运行ID
+          const { data } = await github.rest.actions.listWorkflowRuns({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            workflow_id: 'main.yml',  // 使用 main.yml 作为 workflow_id
+            status: 'in_progress',
+            per_page: 10              // 检查最近10个工作流运行状态
+          });
+
+          // 过滤掉当前工作流
+          const otherRuns = data.workflow_runs.filter(run => run.id !== currentRunId);
+
+          if (otherRuns.length > 0) {
+            core.setFailed(`Another workflow is already running.`);
+          } else {
+            console.log("No other running workflows.");
+          }
+      continue-on-error: false    
+
+
+    
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -26,12 +58,8 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Decrypt Telethon session file
-      env:
-        API_ID: ${{ secrets.API_ID }}
-        SESSION_PASSWORD: ${{ secrets.SESSION_PASSWORD }}
-      run: |
-        openssl aes-256-cbc -d -pbkdf2 -in "${{ secrets.API_ID }}session_name.session.enc" -out "${{ secrets.API_ID }}session_name.session" -pass pass:"${{ secrets.SESSION_PASSWORD }}"
+
+       
 
     - name: Get previous workflow run ID
       uses: actions/github-script@v6
@@ -52,7 +80,16 @@ jobs:
           }
       continue-on-error: true
 
-    - name: Download artifacts
+    - name: Download artifacts - Session
+      uses: actions/download-artifact@v4
+      with:
+        name: session_name
+        path: .
+        run-id: ${{ steps.get-previous-run-id.outputs.run_id }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+      continue-on-error: true
+
+    - name: Download artifacts - Last_Read_Message
       uses: actions/download-artifact@v4
       with:
         name: last_read_message
@@ -60,6 +97,14 @@ jobs:
         run-id: ${{ steps.get-previous-run-id.outputs.run_id }}
         github-token: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
+
+    - name: Decrypt Telethon session file
+      env:
+        API_ID: ${{ secrets.API_ID }}
+        SESSION_PASSWORD: ${{ secrets.SESSION_PASSWORD }}
+      run: |
+        openssl aes-256-cbc -d -pbkdf2 -in "${{ secrets.API_ID }}session_name.session.enc" -out "${{ secrets.API_ID }}session_name.session" -pass pass:"${{ secrets.SESSION_PASSWORD }}"
+
 
     - name: Run Telethon script
       env:
@@ -73,6 +118,20 @@ jobs:
         LINK_CHAT_ID: ${{ secrets.LINK_CHAT_ID }}
       run: |
         python go.py
+
+    - name: Encrypt Telethon session file
+      env:
+        API_ID: ${{ secrets.API_ID }}
+        SESSION_PASSWORD: ${{ secrets.SESSION_PASSWORD }}
+      run: |
+        openssl aes-256-cbc -pbkdf2 -salt -in "${{ secrets.API_ID }}session_name.session" -out "${{ secrets.API_ID }}session_name.session.enc" -pass pass:"${{ secrets.SESSION_PASSWORD }}"
+
+    - name: Upload session_name.enc artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: session_name
+        path: ${{ secrets.API_ID }}session_name.session.enc
+
 
     - name: Check if last_read_message_id.json was created
       run: |
