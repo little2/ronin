@@ -40,28 +40,26 @@ try:
     
    
 except ValueError:
-    print("Environment variable WORK_CHAT_ID or WAREHOUSE_CHAT_ID is not a valid integer.")
+    print("Environment variable WORK_CHAT_ID or WAREHOUSE_CHAT_ID is not a valid integer.", flush=True)
     exit(1)
     
-#max_process_time 設為 1200 秒，即 20 分鐘
-max_process_time = 1200  # 20分钟
-max_media_count = 50  # 10个媒体文件
-max_count_per_chat = 10  # 每个对话的最大消息数
-max_break_time = 150  # 休息时间
+#max_process_time 設為 600 秒，即 10 分鐘
+max_process_time = 600  # 10分钟
+max_media_count = 55  # 10个媒体文件
+max_count_per_chat = 11  # 每个对话的最大消息数
+max_break_time = 60  # 休息时间
 
 
 
 async def main():
     await client.start(phone_number)
-
     start_time = time.time()
     media_count = 0
     
     try:
-         
         await tgbot.client.send_message(tgbot.config['work_bot_id'], "/start")
     except Exception as e:
-        print(f"Error sending message to work_bot_id: {e}")
+        print(f"Error sending message to work_bot_id: {e}", flush=True)
         return
     
 
@@ -108,8 +106,8 @@ async def main():
                 
             
 
-            if dialog.unread_count >= 0 and (dialog.is_group or dialog.is_channel or dialog.is_user):
-                count_per_chat=0;
+            if dialog.unread_count > 0 and (dialog.is_group or dialog.is_channel or dialog.is_user):
+                count_per_chat=0
                 
 
                 time.sleep(0.5)  # 每次请求之间等待0.5秒
@@ -122,7 +120,7 @@ async def main():
 
 
                 
-                print(f"\r\n>Reading messages from entity {entity.id}/{entity_title} - {last_read_message_id}\n")
+                print(f"\r\n>Reading messages from entity {entity.id}/{entity_title} - {last_read_message_id}\n", flush=True)
                 async for message in client.iter_messages(entity, min_id=last_read_message_id, limit=50, reverse=True, filter=InputMessagesFilterEmpty()):
                     NEXT_MESSAGE = False
                    
@@ -153,11 +151,11 @@ async def main():
                             last_read_message_id = last_message_id
                         else:
                             if tgbot.config['warehouse_chat_id']!=0:
-                                print(f"Media from warehouse is empty \n")
+                                print(f"Media from warehouse is empty \n", flush=True)
                             elif entity.id == tgbot.config['work_chat_id']:
-                                print(f"skipping work_chat\n")
+                                print(f"skipping work_chat\n", flush=True)
                             elif entity.id == tgbot.config['warehouse_chat_id']:
-                                print(f"skipping warehouse\n")
+                                print(f"skipping warehouse\n", flush=True)
 
                                 
                            
@@ -170,7 +168,7 @@ async def main():
                                
                                 await tgbot.client.send_message(botname, "/start")
                             except Exception as e:
-                                print(f"Error kicking bot: {e}")
+                                print(f"Error kicking bot: {e}", flush=True)
                             
                             finally:
                                 NEXT_MESSAGE = True
@@ -198,7 +196,7 @@ async def main():
                                     # print(f"'{message.text}' ->matches: {match_str}. =>join\n")
                                     join_result = await tgbot.join_channel_from_link(client, match_str)  
                                     if not join_result:
-                                        print(f"Failed to join channel from link: {match_str}")
+                                        print(f"Failed to join channel from link: {match_str}", flush=True)
                                         NEXT_DIALOGS = True
                                         break
 
@@ -242,7 +240,7 @@ async def main():
                                         async with tgbot.client.conversation(tgbot.config['work_bot_id']) as conv:
                                             await conv.send_message(text)
                                     else:
-                                        print(f"Message from entity {entity.id} has no sender.")
+                                        print(f"Message from entity {entity.id} has no sender.", flush=True)
                                 else:
                                     await tgbot.process_by_check_text(message,'encstr')
 
@@ -266,13 +264,14 @@ async def main():
 
 
         if NEXT_CYCLE:
-            print(f"\nExecution time exceeded {max_process_time} seconds. Stopping.\n")
+            print(f"\nExecution time exceeded {max_process_time} seconds. Stopping.\n", flush=True)
+            tgbot.client.send_message(tgbot.config['warehouse_chat_id'], tgbot.get_last_read_message_content())
             break
         
 
 
 
-        print("\nExecution time is " + str(elapsed_time) + f" seconds. Continuing next cycle... after {max_break_time} seconds.\n")
+        print("\nExecution time is " + str(elapsed_time) + f" seconds. Continuing next cycle... after {max_break_time} seconds.\n", flush=True)
         await asyncio.sleep(max_break_time)  # 间隔180秒
         media_count = 0
 
