@@ -5,6 +5,7 @@ from vendor.wpbot import wp_bot  # 导入 wp_bot
 import asyncio
 import time
 import re
+
 from telethon.tl.types import InputMessagesFilterEmpty, Message, User, Chat, Channel, MessageMediaWebPage
 
 # 检查是否在本地开发环境中运行
@@ -174,16 +175,22 @@ async def main():
 
                     elif message.text:
                        
-                        if message.text.startswith("|_kick_|"):
-                            try:
-                                botname = message.text[len("|_kick_|"):]
-                               
+                        # 使用正则表达式进行匹配，忽略大小写
+                        try:
+                            match = re.search(r'\|_kick_\|\s*(.*?)\s*(bot)', message.text, re.IGNORECASE)
+                            if match:
+                                botname = match.group(1) + match.group(2)  # 直接拼接捕获的组
                                 await tgbot.client.send_message(botname, "/start")
-                            except Exception as e:
-                                print(f"Error kicking bot: {e}", flush=True)
+                            else:
+                                print("No match found")
+                        except Exception as e:
+                            print(f"Error kicking bot: {e}", flush=True)
                             
-                            finally:
-                                NEXT_MESSAGE = True
+                        finally:
+                            NEXT_MESSAGE = True
+
+
+
                                 
                                
 
