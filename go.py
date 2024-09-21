@@ -33,6 +33,7 @@ try:
         'warehouse_chat_id': int(os.getenv('WAREHOUSE_CHAT_ID', 0)),  # 默认值为0
         'link_chat_id': int(os.getenv('LINK_CHAT_ID', 0)),
         'key_word': os.getenv('KEY_WORD'),
+        'show_caption': os.getenv('SHOW_CAPTION')
     }
 
     # 创建 LYClass 实例
@@ -44,10 +45,10 @@ except ValueError:
     exit(1)
     
 #max_process_time 設為 600 秒，即 10 分鐘
-max_process_time = 600  # 10分钟
+max_process_time = 1500  # 10分钟
 max_media_count = 55  # 10个媒体文件
 max_count_per_chat = 11  # 每个对话的最大消息数
-max_break_time = 60  # 休息时间
+max_break_time = 90  # 休息时间
 
 
 
@@ -100,6 +101,7 @@ async def main():
             if isinstance(entity, Channel) or isinstance(entity, Chat):
                 entity_title = entity.title
             elif isinstance(entity, User):
+               
                 entity_title = f'{entity.first_name or ""} {entity.last_name or ""}'.strip()
             else:
                 entity_title = f'Unknown entity {entity.id}'
@@ -108,6 +110,8 @@ async def main():
 
             if dialog.unread_count > 0 and (dialog.is_group or dialog.is_channel or dialog.is_user):
                 count_per_chat=0
+
+               
                 
 
                 time.sleep(0.5)  # 每次请求之间等待0.5秒
@@ -127,14 +131,15 @@ async def main():
                     if message.id <= last_read_message_id:
                         continue
                    
-                    
-                        
-
                     last_message_id = message.id  # 初始化 last_message_id
                    
-                    
                     if message.media and not isinstance(message.media, MessageMediaWebPage):
                        
+
+                        if dialog.is_user:
+                            await tgbot.send_video_to_filetobot_and_send_to_qing_bot(client,message)
+                            print(f"\r\n@>Reading messages from entity {entity.id}/{entity_title} - {dialog.unread_count}\n", flush=True) 
+
                         if tgbot.config['warehouse_chat_id']!=0 and entity.id != tgbot.config['work_chat_id'] and entity.id != tgbot.config['warehouse_chat_id']:
                             
                             if media_count >= max_media_count:
@@ -144,7 +149,13 @@ async def main():
                             if count_per_chat >= max_count_per_chat:
                                 NEXT_DIALOGS = True
                                 break
+
                             last_message_id = await tgbot.forward_media_to_warehouse(client,message)
+                            
+                            print(f"\r\n@>{dialog}", flush=True)
+
+                            
+                            
                             # print(f"last_message_id: {last_message_id}")
                             media_count = media_count + 1
                             count_per_chat = count_per_chat +1
@@ -156,6 +167,7 @@ async def main():
                                 print(f"skipping work_chat\n", flush=True)
                             elif entity.id == tgbot.config['warehouse_chat_id']:
                                 print(f"skipping warehouse\n", flush=True)
+                               
 
                                 
                            
@@ -265,7 +277,7 @@ async def main():
 
         if NEXT_CYCLE:
             print(f"\nExecution time exceeded {max_process_time} seconds. Stopping.\n", flush=True)
-            tgbot.client.send_message(tgbot.config['warehouse_chat_id'], tgbot.get_last_read_message_content())
+            #await tgbot.client.send_message(tgbot.config['warehouse_chat_id'], tgbot.get_last_read_message_content())
             break
         
 
