@@ -93,6 +93,10 @@ class LYClass:
                 caption_parts.append(f"Original: <a href='tg://user?id={message.from_id.user_id}'>{sender_title}</a>")
 
         caption_text = "\n".join(caption_parts)
+
+        if self.config['show_caption'] == 'no':
+            caption_text = None
+        
         try:
             if hasattr(message, 'grouped_id') and message.grouped_id:
                 # 获取相册中的所有消息
@@ -101,7 +105,8 @@ class LYClass:
                 if album:
                     await asyncio.sleep(0.5)  # 间隔80秒
                     last_message_id = max(row.id for row in album)
-                    await client.send_file(self.config['warehouse_chat_id'], album, reply_to=message.id, caption=caption_text, parse_mode='html')
+                    # await client.send_file(self.config['warehouse_chat_id'], album, reply_to=message.id, caption=caption_text, parse_mode='html')
+                    await client.send_file(self.config['warehouse_chat_id'], album,  caption=caption_text, parse_mode='html')
                     print(f">>Forwarded album:{last_message_id}\n")
                     # print(f"{message.id}")
                     # print(f"{album[0].id}")
@@ -115,7 +120,9 @@ class LYClass:
                 if mime_type.startswith('video/'):
                     # 处理视频
                     video = message.media.document
-                    await client.send_file(self.config['warehouse_chat_id'], video, reply_to=message.id, caption=caption_text, parse_mode='html')
+                    # await client.send_file(self.config['warehouse_chat_id'], video, reply_to=message.id, caption=caption_text, parse_mode='html')
+                    
+                    await client.send_file(self.config['warehouse_chat_id'], video,  caption=caption_text, parse_mode='html')
                     print(">>Forwarded video.\n")
                     
                     # 调用新的函数
@@ -123,12 +130,15 @@ class LYClass:
                 else:
                     # 处理文档
                     document = message.media.document
-                    await client.send_file(self.config['warehouse_chat_id'], document, reply_to=message.id, caption=caption_text, parse_mode='html')
+                    # await client.send_file(self.config['warehouse_chat_id'], document, reply_to=message.id, caption=caption_text, parse_mode='html')
+                    await client.send_file(self.config['warehouse_chat_id'], document,  caption=caption_text, parse_mode='html')
                     print(">>Forwarded document.\n")
             elif isinstance(message.media, types.MessageMediaPhoto):
                 # 处理图片
                 photo = message.media.photo
-                await client.send_file(self.config['warehouse_chat_id'], photo, reply_to=message.id, caption=caption_text, parse_mode='html')
+                await client.send_file(self.config['warehouse_chat_id'], photo,  caption=caption_text, parse_mode='html')
+                
+                # await client.send_file(self.config['warehouse_chat_id'], photo, reply_to=message.id, caption=caption_text, parse_mode='html')
                 print(">>Forwarded photo.\n")
             else:
                 print("Received media, but not a document, video, photo, or album.")
@@ -164,6 +174,34 @@ class LYClass:
                 caption_text = "|_SendToBeach_|\n"+original_message.text+"\n"+filetobot_response.message
                 await publicbot_conv.send_file(filetobot_response.media, caption=caption_text)
                 print(">>>>Forwarded filetobot response to publish bot with caption.")
+
+    async def send_video_to_filetobot_and_send_to_qing_bot(self, client, video):
+        print(">>>>Sending video to filetobot and forwarding to qing bot.")
+        # original_message_id = original_message.id
+
+        # 将视频发送到 filetobot 并等待响应
+        async with client.conversation('filetobot') as filetobot_conv:
+            filetobot_message = await filetobot_conv.send_file(video)
+            try:
+                # 持续监听，直到接收到媒体文件
+                while True:
+                    filetobot_response = await asyncio.wait_for(filetobot_conv.get_response(filetobot_message.id), timeout=30)
+                    if filetobot_response.media:
+                        break
+                    else:
+                        print(">>>Received text response, waiting for media...")
+
+            except asyncio.TimeoutError:
+                # await client.send_message(self.config['work_chat_id'], "filetobot timeout", reply_to=original_message_id)
+                print("filetobot response timeout.")
+                return
+
+            # 将 filetobot 的响应内容传送给 public_bot_id，并设置 caption 为原始消息的文本
+            async with client.conversation(self.config['work_bot_id']) as publicbot_conv:
+                # caption_text = "|_SendToBeach_|\n"+original_message.text+"\n"+filetobot_response.message
+                await publicbot_conv.send_file(filetobot_response.media, caption=filetobot_response.message)
+                print(">>>>Forwarded filetobot response to qing bot with caption.")
+
 
     async def wpbot(self, client, message, bot_username):
         try:
