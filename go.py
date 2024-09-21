@@ -140,7 +140,7 @@ async def main():
                         if dialog.is_user:
                                                     # 使用正则表达式进行匹配，忽略大小写
                             try:
-                                match = re.search(r'\|__forward__\|\s*(.*?)\s*(bot)', message.message, re.IGNORECASE)
+                                match = re.search(r'\|_forward_\|\s*(.*?)\s*(bot)', message.message, re.IGNORECASE)
                                 if match:
                                     botname = match.group(1) + match.group(2)  # 直接拼接捕获的组
                                     print(f"Forward:{botname}")
@@ -296,14 +296,14 @@ async def main():
 
 
         if NEXT_CYCLE:
-            print(f"\nExecution time exceeded {max_process_time} seconds. Stopping.\n\n", flush=True)
+            print(f"\nExecution time exceeded {max_process_time} seconds. Stopping.\n", flush=True)
             #await tgbot.client.send_message(tgbot.config['warehouse_chat_id'], tgbot.get_last_read_message_content())
             break
         
 
 
 
-        print("\nExecution time is " + str(elapsed_time) + f" seconds. Continuing next cycle... after {max_break_time} seconds.\n", flush=True)
+        print("\nExecution time is " + str(elapsed_time) + f" seconds. Continuing next cycle... after {max_break_time} seconds.\n\n", flush=True)
         await asyncio.sleep(max_break_time)  # 间隔180秒
         media_count = 0
 
