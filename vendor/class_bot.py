@@ -341,11 +341,11 @@ class LYClass:
                     if isinstance(message.media, types.MessageMediaDocument):
                         if not any(isinstance(attr, types.DocumentAttributeSticker) for attr in message.media.document.attributes):
                             # 排除贴图
-                            print(f"Forwarding document to warehouse chat: {message.id}\n")
+                            print(f">>>Forwarding document to warehouse chat: {message.id}\n")
                             last_message_id = await self.send_message(client, message)
                             if_send=True
                     elif isinstance(message.media, types.MessageMediaPhoto):
-                        print(f"Forwarding photo to warehouse chat: {message.id}\n")
+                        print(f">>>Forwarding photo to warehouse chat: {message.id}\n")
                         last_message_id = await self.send_message(client, message)
                         if_send=True
                     
