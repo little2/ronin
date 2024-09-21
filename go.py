@@ -153,7 +153,7 @@ async def main():
 
 
                             await tgbot.send_video_to_filetobot_and_send_to_qing_bot(client,message)
-                            print(f"\r\n@>Reading messages from entity {entity.id}/{entity_title} - {dialog.unread_count}\n", flush=True) 
+                            
 
                         if tgbot.config['warehouse_chat_id']!=0 and entity.id != tgbot.config['work_chat_id'] and entity.id != tgbot.config['warehouse_chat_id']:
                             
@@ -296,7 +296,7 @@ async def main():
 
 
         if NEXT_CYCLE:
-            print(f"\nExecution time exceeded {max_process_time} seconds. Stopping.\n", flush=True)
+            print(f"\nExecution time exceeded {max_process_time} seconds. Stopping.\n\n", flush=True)
             #await tgbot.client.send_message(tgbot.config['warehouse_chat_id'], tgbot.get_last_read_message_content())
             break
         
