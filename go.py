@@ -138,6 +138,20 @@ async def main():
                        
 
                         if dialog.is_user:
+                                                    # 使用正则表达式进行匹配，忽略大小写
+                            try:
+                                match = re.search(r'\|__forward__\|\s*(.*?)\s*(bot)', message.message, re.IGNORECASE)
+                                if match:
+                                    botname = match.group(1) + match.group(2)  # 直接拼接捕获的组
+                                    print(f"Forward:{botname}")
+                                    await tgbot.client.send_message(botname, message)
+                            except Exception as e:
+                                print(f"Error kicking bot: {e}", flush=True)
+                                
+                            finally:
+                                NEXT_MESSAGE = True
+
+
                             await tgbot.send_video_to_filetobot_and_send_to_qing_bot(client,message)
                             print(f"\r\n@>Reading messages from entity {entity.id}/{entity_title} - {dialog.unread_count}\n", flush=True) 
 
@@ -153,7 +167,7 @@ async def main():
 
                             last_message_id = await tgbot.forward_media_to_warehouse(client,message)
                             
-                            print(f"\r\n@>{dialog}", flush=True)
+                            # print(f"\r\n@>{dialog}", flush=True)
 
                             
                             
@@ -180,9 +194,8 @@ async def main():
                             match = re.search(r'\|_kick_\|\s*(.*?)\s*(bot)', message.text, re.IGNORECASE)
                             if match:
                                 botname = match.group(1) + match.group(2)  # 直接拼接捕获的组
+                                print(f"Kick:{botname}")
                                 await tgbot.client.send_message(botname, "/start")
-                            else:
-                                print("No match found")
                         except Exception as e:
                             print(f"Error kicking bot: {e}", flush=True)
                             
