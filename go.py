@@ -125,7 +125,7 @@ async def main():
 
 
                 
-                print(f"\r\n>Reading messages from entity {entity.id}/{entity_title} - {last_read_message_id}\n", flush=True)
+                print(f"\r\n>Reading messages from entity {entity.id}/{entity_title} - {last_read_message_id} - U:{dialog.unread_count} \n", flush=True)
                 async for message in client.iter_messages(entity, min_id=last_read_message_id, limit=50, reverse=True, filter=InputMessagesFilterEmpty()):
                     NEXT_MESSAGE = False
                    
