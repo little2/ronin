@@ -210,7 +210,8 @@ class LYClass:
                 # 根据bot_username 找到 wp_bot 中对应的 bot_name = bot_username 的字典
                 bot = next((bot for bot in wp_bot if bot['bot_name'] == bot_username), None)
                 if bot['mode'] == 'link':
-                    message.text = '/start ' + message.text
+                    match = re.search(r"(?i)start=([a-zA-Z0-9_]+)", message.text)
+                    message.text = '/start ' + match.group(1)
 
                 # 发送消息到机器人
                 forwarded_message = await conv.send_message(message.text)
