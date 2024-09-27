@@ -2,7 +2,7 @@ name: Deploy Telethon
 
 on: 
   schedule:
-    - cron: '*/30 * * * *'  # 每15分钟触发一次
+    - cron: '*/33 * * * *'  # 每15分钟触发一次
   push: 
     branches: 
       - master  # 当推送到 master 分支时触发
