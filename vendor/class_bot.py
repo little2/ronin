@@ -8,6 +8,7 @@ from telethon.errors import WorkerBusyTooLongRetryError
 from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
 from vendor.wpbot import wp_bot  # 导入 wp_bot
+from types import SimpleNamespace
 
 class LYClass:
 
@@ -23,25 +24,38 @@ class LYClass:
     async def process_by_check_text(self,message,mode):
         try:
             enc_exist = False
-            if message.text:
+            if message and message.text:
                 for bot in wp_bot:
+                   
                     pattern = re.compile(bot['pattern'])
                     matches = pattern.findall(message.text)
                     for match in matches:
                         enc_exist=True
+                        
                         if mode == 'encstr':
-                            print(f">>send to QQ: {message.id}\n")
+                            print(f">>send to QQ: {message.id}\n", flush=True)
                             async with self.client.conversation(self.config['work_bot_id']) as conv:
                                 await conv.send_message(match)
                                 # print(match)
+                        elif mode == 'request':
+                            print(f">>send request to QQ: {message.id}\n", flush=True)
+                            print(f"message:{message.peer_id}")
+                            async with self.client.conversation(self.config['work_bot_id']) as conv:
+                                await conv.send_message(f"|_{message.peer_id.user_id}_|_request_|{match}")
+                        
                         elif mode == 'tobot':
-                            print(f">>send to Enctext BOT: {message.id}\n")
+                            print(f">>send to Enctext BOT: {message.id}\n", flush=True)
                             await self.wpbot(self.client, message, bot['bot_name'])
+                        elif mode == 'query':
+                            bot['match'] = match
+                            enc_exist=False
+                            return bot
             else:
                 print(f"No matching pattern for message: {message.text} {message} \n")
         except Exception as e:
             print(f">>(1)An error occurred while processing message: {e} \n message:{message}\n")
         finally:
+            print(f"enc_exist:{enc_exist}")
             if enc_exist:
                 await asyncio.sleep(5)
             else:
@@ -278,6 +292,66 @@ class LYClass:
         except Exception as e:
             print(f"\rAn error occurred: {e}\n")
 
+    async def update_wpbot_data(self, client, message, datapan):
+        try:
+            print(f"message: {message}")
+            ck_message = SimpleNamespace()
+            ck_message.id = message.id
+            if message.reply_to_message and message.reply_to_message.text:
+                ck_message.text = message.reply_to_message.text
+               
+            elif message.text:
+                ck_message.text = message.text
+                
+            elif message.caption:
+                ck_message.text = message.caption
+               
+
+            print(f"ck_message: {ck_message}")
+
+            if ck_message.text:            
+                query = await self.process_by_check_text(ck_message,'query')
+                print(f"query: {query}")
+                if query:
+                    
+                    if message.video:
+                        file_id = message.video.file_id
+                        file_unique_id = message.video.file_unique_id
+                        file_type = 'video'
+                    elif message.document:
+                        file_id = message.document.file_id
+                        file_unique_id = message.document.file_unique_id
+                        file_type = 'document'    
+                    elif message.photo:
+                        file_id = message.photo[-1].file_id
+                        file_unique_id = message.photo[-1].file_unique_id
+                        file_type = 'photo'
+
+                    # 准备插入的数据
+                    data = {
+                        'enc_str': query['match'],
+                        'file_unique_id': file_unique_id,
+                        'file_id': file_id,
+                        'file_type': file_type,
+                        'bot_name': 'Qing002BOT',
+                        'wp_bot': query['bot_name']
+                    }
+
+                    # 使用 insert 或者更新功能
+                    query_sql = (datapan
+                            .insert(**data)
+                            .on_conflict(
+                                conflict_target=[datapan.enc_str],  # 冲突字段
+                                update={datapan.file_unique_id: data['file_unique_id'],
+                                        datapan.file_id: data['file_id'],
+                                        datapan.bot_name: data['bot_name'],
+                                        datapan.wp_bot: data['wp_bot']}
+                            ))
+
+                    query_sql.execute()
+            
+        except Exception as e:
+            print(f"发生错误: {e}")
     
 
     def save_last_read_message_id(self, chat_id, message_id):

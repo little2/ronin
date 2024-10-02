@@ -1,13 +1,5 @@
 wp_bot = [
     {
-        'title': 'blgg',
-        'bot_name': 'FilesDrive_BLGA_bot',
-        'id': '7485716743',  # 6854050358
-        'mode': 'enctext',
-        'pattern': r'(?:p_|vi_|f_|fds_)[a-zA-Z0-9-_]{30,100}\b',
-        'message_thread_id': '23'
-    },
-    {
         'title': 'filespan1',
         'bot_name': 'FilesPan1Bot',
         'id': '7174271897',  # 6854050358
@@ -15,13 +7,14 @@ wp_bot = [
         'pattern': r'(?:p_FilesPan1Bot_|v_FilesPan1Bot_|d_FilesPan1Bot_)[a-zA-Z0-9-_]{30,100}\b',
         'message_thread_id': '23'
     },
+   
     {
-        'title': 'filesave',
-        'bot_name': 'FileSaveNewBot',
-        'id': '7008164392',  # 6854050358
+        'title': 'blgg',
+        'bot_name': 'FilesDrive_BLGA_bot',
+        'id': '7485716743',  # 6854050358
         'mode': 'enctext',
-        'pattern': r'(?:P_|V_|D_)[a-zA-Z0-9-_]{15,29}\b',
-        'message_thread_id': '25'
+        'pattern': r'(?:p_|vi_|f_|fds_)[a-zA-Z0-9-_]{30,100}\b',
+        'message_thread_id': '23'
     },
     {
         'title': 'mediabk',
@@ -46,6 +39,22 @@ wp_bot = [
         'mode': 'enctext',
         'pattern': r'(?:P_DataPanBot_|V_DataPanBot_|D_DataPanBot_|fds_|pk_)[a-zA-Z0-9-_]{30,100}\b',
         'message_thread_id': '28'
+    },
+     {
+        'title': 'filesave',
+        'bot_name': 'FileSaveNewBot',
+        'id': '7008164392',  # 6854050358
+        'mode': 'enctext',
+        'pattern': r'(?:P_|V_|D_)[a-zA-Z0-9-_]{15,29}\b',
+        'message_thread_id': '25'
+    },
+    {
+        'title': 'jyypbot',
+        'bot_name': 'jyypbot',
+        'id': '6873643118',
+        'mode': 'link',
+        'pattern': r'/^https:\/\/t\.me\/jyypbot\?start=([0-9a-fA-F-]+)/',
+        'message_thread_id': '29'
     },
     {
         'title': 'filetobot',
