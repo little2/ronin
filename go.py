@@ -5,6 +5,7 @@ from vendor.wpbot import wp_bot  # 导入 wp_bot
 import asyncio
 import time
 import re
+import traceback
 
 from telethon.tl.types import InputMessagesFilterEmpty, Message, User, Chat, Channel, MessageMediaWebPage
 
@@ -88,7 +89,7 @@ async def main():
             blacklist = [2131062766, 1766929647, 1781549078, 6701952909, 6366395646,93372553,2197546676]  # Example blacklist with entity IDs
             # blacklist = [2154650877,2190384328,2098764817,1647589965,1731239234,1877274724,2131062766, 1766929647, 1781549078, 6701952909, 6366395646,93372553,2215190216,2239552986,2215190216,2171778803,1704752058]
 
-            enclist = [2012816724,2239552986,2215190216,7061290326,2175483382] 
+            enclist = [2012816724,2239552986,2215190216,7061290326,2175483382,2252083262] 
 
             skip_vaildate_list =[2201450328]
 
@@ -117,10 +118,10 @@ async def main():
 
                 time.sleep(0.5)  # 每次请求之间等待0.5秒
 
-                if entity.id == tgbot.config['work_chat_id']:
-                    last_read_message_id = 14244
-                else:
-                    last_read_message_id = tgbot.load_last_read_message_id(entity.id)
+                # if entity.id == tgbot.config['work_chat_id']:
+                #     last_read_message_id = 14244
+                # else:
+                last_read_message_id = tgbot.load_last_read_message_id(entity.id)
                 
 
 
@@ -135,24 +136,35 @@ async def main():
                     last_message_id = message.id  # 初始化 last_message_id
                    
                     if message.media and not isinstance(message.media, MessageMediaWebPage):
-                       
-
                         if dialog.is_user:
-                                                    # 使用正则表达式进行匹配，忽略大小写
+                            # 使用正则表达式进行匹配，忽略大小写
                             try:
-                                match = re.search(r'\|_forward_\|\s*(.*?)\s*(bot)', message.message, re.IGNORECASE)
+                                # 正则表达式匹配 |_forward_|@ 之后的字符串
+                                match = re.search(r'\|_forward_\|\s*@([^\s]+)', message.message, re.IGNORECASE)
+                                
                                 if match:
-                                    botname = match.group(1) + match.group(2)  # 直接拼接捕获的组
-                                    print(f"Forward:{botname}")
-                                    await tgbot.client.send_message(botname, message)
+                                    captured_str = match.group(1).strip()  # 捕获到的字符串
+                                    print(f"Captured string: {captured_str}")
+                                    
+                                    # 判断是否为数字
+                                    if captured_str.isdigit():
+                                        print(f"Forward to number: {captured_str}")
+                                        await tgbot.client.send_message(int(captured_str), message)  # 如果是数字，转成整数发送
+                                    else:
+                                        print(f"Forward to bot: {captured_str}")
+                                        await tgbot.client.send_message(captured_str, message)  # 如果不是数字，按字符串发送
+                                else:
+                                    # 如果没有匹配到正则，走默认的处理逻辑
+                                    await tgbot.send_video_to_filetobot_and_send_to_qing_bot(client, message)
                             except Exception as e:
-                                print(f"Error kicking bot: {e}", flush=True)
+                                print(f"Error forwarding message: {e}", flush=True)
+                                traceback.print_exc()  # 打印完整的异常堆栈信息
                                 
                             finally:
                                 NEXT_MESSAGE = True
 
 
-                            await tgbot.send_video_to_filetobot_and_send_to_qing_bot(client,message)
+                            
                             
 
                         if tgbot.config['warehouse_chat_id']!=0 and entity.id != tgbot.config['work_chat_id'] and entity.id != tgbot.config['warehouse_chat_id']:
@@ -196,17 +208,10 @@ async def main():
                                 botname = match.group(1) + match.group(2)  # 直接拼接捕获的组
                                 print(f"Kick:{botname}")
                                 await tgbot.client.send_message(botname, "/start")
+                                NEXT_MESSAGE = True
                         except Exception as e:
                             print(f"Error kicking bot: {e}", flush=True)
                             
-                        finally:
-                            NEXT_MESSAGE = True
-
-
-
-                                
-                               
-
 
                         # print(f">>>Reading TEXT from entity {entity.id}/{entity_title} - {message}\n")
                         regex1 = r"https?://t\.me/(?:joinchat/)?\+?[a-zA-Z0-9_\-]{15,50}"
@@ -245,9 +250,15 @@ async def main():
                             if media_count >= max_media_count:
                                 NEXT_CYCLE = True
                                 break
+                            
+                            if count_per_chat >= max_count_per_chat:
+                                NEXT_DIALOGS = True
+                                break
+
 
                             await tgbot.process_by_check_text(message,'tobot')
                             media_count = media_count + 1
+                            count_per_chat = count_per_chat +1
                         elif dialog.is_group or dialog.is_channel:
                         
                             if entity.id in enclist:
@@ -256,7 +267,18 @@ async def main():
                                 ckresult = tgbot.check_strings(message.text)
                                 if ckresult:
                                     # print(f"===============\n{message}\n===============\n")
+                                    if media_count >= max_media_count:
+                                        NEXT_CYCLE = True
+                                        break
+                                    
+                                    if count_per_chat >= max_count_per_chat:
+                                        NEXT_DIALOGS = True
+                                        break
+
+
                                     await tgbot.process_by_check_text(message,'encstr')
+                                    media_count = media_count + 1
+                                    count_per_chat = count_per_chat +1
                             else:    
                                 if '海水浴场' in message.text:
 
@@ -275,6 +297,13 @@ async def main():
                                         print(f"Message from entity {entity.id} has no sender.", flush=True)
                                 else:
                                     await tgbot.process_by_check_text(message,'encstr')
+                        elif dialog.is_user:
+                            if '|_request_|' in message.text:
+
+                                await tgbot.process_by_check_text(message,'request')
+                            else:
+                                await tgbot.process_by_check_text(message,'encstr')
+                            
 
 
                            
@@ -296,14 +325,17 @@ async def main():
 
 
         if NEXT_CYCLE:
-            print(f"\nExecution time exceeded {max_process_time} seconds. Stopping.\n", flush=True)
+            print(f"\nExecution time exceeded {int(max_process_time)} seconds. Stopping. T:{int(elapsed_time)} of {int(max_process_time)} ,C:{media_count} of {max_media_count}\n", flush=True)
+            print(f"-\n", flush=True)
             #await tgbot.client.send_message(tgbot.config['warehouse_chat_id'], tgbot.get_last_read_message_content())
             break
         
 
 
 
-        print("\nExecution time is " + str(elapsed_time) + f" seconds. Continuing next cycle... after {max_break_time} seconds.\n\n", flush=True)
+        print("\nExecution time is " + str(int(elapsed_time)) + f" seconds. Continuing next cycle... after {max_break_time} seconds.\n\n", flush=True)
+        print(f"-\n", flush=True)
+        print(f"-------------------------------------\n", flush=True)
         await asyncio.sleep(max_break_time)  # 间隔180秒
         media_count = 0
 
