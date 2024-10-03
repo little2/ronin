@@ -1,11 +1,10 @@
-
-from telethon import types,errors
 import asyncio
 import json
 import os
+import random
 import re
+from telethon import events,types,errors
 from telethon.errors import WorkerBusyTooLongRetryError
-from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
 from vendor.wpbot import wp_bot  # 导入 wp_bot
 from types import SimpleNamespace
@@ -403,8 +402,95 @@ class LYClass:
 
 
 
+    async def forward_media_to_tlgur(self, client, message):
+        # 定义一个包含多个可能值的列表
+        bot_usernames = ['tlgur_botbot', 'tIgurbot']
+
+        # 使用 random.choice 随机选择列表中的一个值
+        bot_username = random.choice(bot_usernames)
         
+
+        # 检查消息是否包含有效的媒体
+        if not message.media or not message.media.photo:
+            print("No media found in the message.")
+            return
+        original_message_id = message.id    
+        photo = message.media.photo
+        async with client.conversation(bot_username) as conv:
+
+
+
+            try:
+                # 发送图片
+                forwarded_message = await conv.send_file(photo)
+                print("File sent, awaiting response...")
+
+
+                # 循环等待响应并监听消息编辑事件
+                while True:
+                    try:
+                        # 首先等待机器人发送第一次回复（Uploading...）
+                        response = await conv.get_response(forwarded_message.id)
+                        print(f"Initial response: {response.text}")
+
+                        if "Uploading..." in response.text:
+                            print("Received 'Uploading...', now waiting for final URL...")
+
+                            # 等待该消息的修改（例如从 'Uploading...' 到 URL）
+                            while True:
+                                edited_response = await conv.wait_event(events.MessageEdited(from_users=bot_username))
+                                print(f"Edited response: {edited_response.text}")
+
+                                # 检查是否包含网址（假设 URL 格式为 "http" 开头的字符串）
+                                url_match = re.search(r'http[s]?://\S+', edited_response.text)
+                                if url_match:
+                                    await client.send_message(self.config['media_work_chat_id'], edited_response.text, reply_to=original_message_id)
+                                    print(f"Final URL received: {url_match.group()}")
+                                    break  # 跳出循环，处理完毕
+
+                            break  # 跳出外部循环
+
+                        else:
+                            print("Received something else, continuing to wait...")
+
+                    except asyncio.TimeoutError:
+                        print("Response timeout.")
+                        break  # 跳出循环避免无限等待
+
+                
+                    
+            except asyncio.exceptions.CancelledError:
+                print("The conversation was cancelled.")
+                return
+            
+            except errors.FloodWaitError as e:
+                print(f"Flood wait error: {e.seconds} seconds")
+                await asyncio.sleep(e.seconds)
+            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+
+
+    
+    async def forward_media_to_tlgur1(self, client, message):   
+        bot_username = 'tlgur_botbot' 
+        #https://t.me/tIgurbot
+
        
+        photo = message.media.photo
+        async with client.conversation(bot_username) as conv:
+            forwarded_message = await conv.send_file(photo)
+
+            try:
+                # 获取机器人的响应，等待30秒
+                response = await asyncio.wait_for(conv.get_response(forwarded_message.id), timeout=30)
+                print(f"response: {response}")
+            except asyncio.TimeoutError:
+                # 如果超时，发送超时消息
+                
+                print("Response timeout.")
+                return
+
 
     async def forward_media_to_warehouse(self, client, message):
         try:
