@@ -150,6 +150,10 @@ async def main():
                                     # 判断是否为数字
                                     if captured_str.isdigit():
                                         print(f"Forward to number: {captured_str}")
+                                        #如何captured_str是-100开头，则拿掉-100，再转成整数发送
+                                        if captured_str.startswith('-100'):
+                                            captured_str = captured_str.replace('-100','')
+                                        
                                         await tgbot.client.send_message(int(captured_str), message)  # 如果是数字，转成整数发送
                                     else:
                                         print(f"Forward to bot: {captured_str}")
