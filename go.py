@@ -31,6 +31,7 @@ try:
         'session_name': os.getenv('API_ID') + 'session_name',
         'work_bot_id': os.getenv('WORK_BOT_ID'),
         'work_chat_id': int(os.getenv('WORK_CHAT_ID', 0)),  # 默认值为0
+        'media_work_chat_id': int(os.getenv('MEDIA_WORK_CHAT_ID', 0)),  # 默认值为0
         'public_bot_id': os.getenv('PUBLIC_BOT_ID'),
         'warehouse_chat_id': int(os.getenv('WAREHOUSE_CHAT_ID', 0)),  # 默认值为0
         'link_chat_id': int(os.getenv('LINK_CHAT_ID', 0)),
@@ -165,9 +166,24 @@ async def main():
 
 
                             
+                        if entity.id == tgbot.config['media_work_chat_id']:    
+                            if media_count >= max_media_count:
+                                NEXT_CYCLE = True
+                                break
                             
+                            if count_per_chat >= max_count_per_chat:
+                                NEXT_DIALOGS = True
+                                break
 
-                        if tgbot.config['warehouse_chat_id']!=0 and entity.id != tgbot.config['work_chat_id'] and entity.id != tgbot.config['warehouse_chat_id']:
+
+                            await tgbot.forward_media_to_tlgur(client,message)
+
+                            # print(f"last_message_id: {last_message_id}")
+                            media_count = media_count + 1
+                            count_per_chat = count_per_chat +1
+                            last_read_message_id = last_message_id
+
+                        elif tgbot.config['warehouse_chat_id']!=0 and entity.id != tgbot.config['work_chat_id'] and entity.id != tgbot.config['warehouse_chat_id']:
                             
                             if media_count >= max_media_count:
                                 NEXT_CYCLE = True
