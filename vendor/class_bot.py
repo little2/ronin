@@ -29,6 +29,7 @@ class LYClass:
             enc_exist = False
             if message and message.text:
                 results = []
+                
                 for bot in wp_bot:
                    
                     pattern = re.compile(bot['pattern'])
@@ -56,7 +57,7 @@ class LYClass:
                             bot['match'] = match
                             results.append(bot)
                             enc_exist=False
-                return {bot:bot,results:results}            
+                return {results:results}            
             else:
                 print(f"No matching pattern for message: {message.text} {message} \n")
         except Exception as e:
