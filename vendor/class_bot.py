@@ -57,7 +57,7 @@ class LYClass:
                             bot['match'] = match
                             results.append(bot)
                             enc_exist=False
-                return {results:results}            
+                return results           
             else:
                 print(f"No matching pattern for message: {message.text} {message} \n")
         except Exception as e:
