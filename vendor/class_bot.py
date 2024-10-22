@@ -1,4 +1,5 @@
 import asyncio
+from collections import defaultdict
 import json
 import os
 import random
@@ -17,13 +18,17 @@ class LYClass:
     def __init__(self, client, config):
         self.config = config 
         self.client = client
-        
+    
+
+    def is_number(s):
+        return bool(re.match(r'^-?\d+(\.\d+)?$', s))
 
     # 查找文字，若存在匹配的字串，則根據傳入的參數mode來處理，若mode=tobot,則用 fetch_media_from_enctext 函數處理。若 mode=encstr，則用 forward_encstr_to_encbot 函數處理; 
     async def process_by_check_text(self,message,mode):
         try:
             enc_exist = False
             if message and message.text:
+                results = []
                 for bot in wp_bot:
                    
                     pattern = re.compile(bot['pattern'])
@@ -36,19 +41,22 @@ class LYClass:
                             async with self.client.conversation(self.config['work_bot_id']) as conv:
                                 await conv.send_message(match)
                                 # print(match)
-                        elif mode == 'request':
+                        elif mode == 'request': ## Request the bot to send the material to the user with the peer ID, but it's possible that no bot has the required resources and might not be able to send it in time
                             print(f">>send request to QQ: {message.id}\n", flush=True)
                             print(f"message:{message.peer_id}")
                             async with self.client.conversation(self.config['work_bot_id']) as conv:
                                 await conv.send_message(f"|_{message.peer_id.user_id}_|_request_|{match}")
-                        
+                        elif mode == 'askWBotFromUser':
+                            print(f">>send to Enctext BOT: {message.id}\n", flush=True)
+                            await self.wpbot(self.client, message, bot['bot_name'],message.peer_id.user_id)
                         elif mode == 'tobot':
                             print(f">>send to Enctext BOT: {message.id}\n", flush=True)
                             await self.wpbot(self.client, message, bot['bot_name'])
                         elif mode == 'query':
                             bot['match'] = match
+                            results.append(bot)
                             enc_exist=False
-                            return bot
+                return {bot:bot,results:results}            
             else:
                 print(f"No matching pattern for message: {message.text} {message} \n")
         except Exception as e:
@@ -65,7 +73,7 @@ class LYClass:
         # 构建 caption
         caption_parts = []
         
-        # 获取消息来源
+        # 获取消息来源 组成caption_text 
         if message.message:
             caption_parts.append(f"Original caption: {message.message}")
 
@@ -107,6 +115,7 @@ class LYClass:
 
         caption_text = "\n".join(caption_parts)
 
+        # 如果配置中设置了不显示 caption，则将 caption_text 设置为 None
         if self.config['show_caption'] == 'no':
             caption_text = None
         
@@ -216,9 +225,10 @@ class LYClass:
                 print(">>>>Forwarded filetobot response to qing bot with caption.")
 
 
-    async def wpbot(self, client, message, bot_username):
+    async def wpbot(self, client, message, bot_username, chat_id=None):
         try:
-            chat_id = self.config['work_chat_id']
+            if chat_id is None:
+                chat_id = self.config['work_chat_id']
             async with client.conversation(bot_username) as conv:
                 # 根据bot_username 找到 wp_bot 中对应的 bot_name = bot_username 的字典
                 bot = next((bot for bot in wp_bot if bot['bot_name'] == bot_username), None)
@@ -246,6 +256,10 @@ class LYClass:
                             video = response.media.document
                             await client.send_file(chat_id, video, reply_to=message.id)
                             print(">>>Forwarded video.")
+
+                            #如果 chat_id 不是 work_chat_id，则将视频发送到 qing bot
+                            if chat_id != self.config['work_chat_id']:
+                                await client.send_file(self.config['work_chat_id'], video)
                             
                             # 调用新的函数
                             #await self.send_video_to_filetobot_and_publish(client, video, message)
@@ -253,6 +267,10 @@ class LYClass:
                             # 处理文档
                             document = response.media.document
                             await client.send_file(chat_id, document, reply_to=message.id)
+
+                            #如果 chat_id 不是 work_chat_id，则将视频发送到 qing bot
+                            if chat_id != self.config['work_chat_id']:
+                                await client.send_file(self.config['work_chat_id'], document)
 
                             #caption_text = "|_SendToBeach_|\n"+message.text
                             #await client.send_file(self.config['public_bot_id'], document, caption=caption_text)
@@ -262,6 +280,10 @@ class LYClass:
                         photo = response.media.photo
                         await client.send_file(chat_id, photo, reply_to=message.id)
 
+                        #如果 chat_id 不是 work_chat_id，则将视频发送到 qing bot
+                        if chat_id != self.config['work_chat_id']:
+                            await client.send_file(self.config['work_chat_id'], photo)
+
                         #caption_text = "|_SendToBeach_|\n"+message.text
                         #await client.send_file(self.config['public_bot_id'], photo, caption=caption_text)
                         print("Forwarded photo.")
@@ -270,19 +292,19 @@ class LYClass:
                 elif response.text:
                     # 处理文本
                     if response.text == "在您发的这条消息中，没有代码可以被解析":
-                        await self.wpbot(self.client, message, 'ShowFilesBot')
+                        await self.wpbot(self.client, message, 'ShowFilesBot',chat_id)
                     elif "💔抱歉，未找到可解析内容。" in response.text:
                         await client.send_message(chat_id, response.text, reply_to=message.id)   
                     elif "不能为你服务" in response.text:
                         await client.send_message(chat_id, "the bot was timeout", reply_to=message.id)
                         
                     elif response.text == "创建者申请了新的分享链接，此链接已过期":
-                        await self.wpbot(self.client, message, 'ShowFilesBot')
+                        await self.wpbot(self.client, message, 'ShowFilesBot',chat_id)
                     elif response.text == "此机器人面向外国用户使用，访问 @MediaBKHome 获取面向国内用户使用的机器人":
-                        await self.wpbot(self.client, message, 'ShowFilesBot')
+                        await self.wpbot(self.client, message, 'ShowFilesBot',chat_id)
                         
                     elif response.text == "access @MediaBKHome to get media backup bot for non-chinese-speaking user":
-                        await self.wpbot(self.client, message, 'ShowFilesBot')
+                        await self.wpbot(self.client, message, 'ShowFilesBot',chat_id)
                     else:
                         print("Received text response: "+response.text)
                     print("Forwarded text.")
@@ -312,42 +334,51 @@ class LYClass:
                 query = await self.process_by_check_text(ck_message,'query')
                 print(f"query: {query}")
                 if query:
+
+                    # 根据 bot 进行排序和分组
+                    bot_dict = defaultdict(list)
+                    for result in query['results']:
+                        bot_dict[result['bot']].append((result['match'], result['bot_name']))
                     
-                    if message.video:
-                        file_id = message.video.file_id
-                        file_unique_id = message.video.file_unique_id
-                        file_type = 'video'
-                    elif message.document:
-                        file_id = message.document.file_id
-                        file_unique_id = message.document.file_unique_id
-                        file_type = 'document'    
-                    elif message.photo:
-                        file_id = message.photo[-1].file_id
-                        file_unique_id = message.photo[-1].file_unique_id
-                        file_type = 'photo'
+                    # 展示结果
+                    for bot, entries in sorted(bot_dict.items()):
+                        print(f"Bot: {bot}")
+                        for match, bot_name in entries:
+                            if message.video:
+                                file_id = message.video.file_id
+                                file_unique_id = message.video.file_unique_id
+                                file_type = 'video'
+                            elif message.document:
+                                file_id = message.document.file_id
+                                file_unique_id = message.document.file_unique_id
+                                file_type = 'document'    
+                            elif message.photo:
+                                file_id = message.photo[-1].file_id
+                                file_unique_id = message.photo[-1].file_unique_id
+                                file_type = 'photo'
 
-                    # 准备插入的数据
-                    data = {
-                        'enc_str': query['match'],
-                        'file_unique_id': file_unique_id,
-                        'file_id': file_id,
-                        'file_type': file_type,
-                        'bot_name': 'Qing002BOT',
-                        'wp_bot': query['bot_name']
-                    }
+                            # 准备插入的数据
+                            data = {
+                                'enc_str': match,
+                                'file_unique_id': file_unique_id,
+                                'file_id': file_id,
+                                'file_type': file_type,
+                                'bot_name': 'Qing002BOT',
+                                'wp_bot': bot_name
+                            }
 
-                    # 使用 insert 或者更新功能
-                    query_sql = (datapan
-                            .insert(**data)
-                            .on_conflict(
-                                conflict_target=[datapan.enc_str],  # 冲突字段
-                                update={datapan.file_unique_id: data['file_unique_id'],
-                                        datapan.file_id: data['file_id'],
-                                        datapan.bot_name: data['bot_name'],
-                                        datapan.wp_bot: data['wp_bot']}
-                            ))
+                            # 使用 insert 或者更新功能
+                            query_sql = (datapan
+                                    .insert(**data)
+                                    .on_conflict(
+                                        conflict_target=[datapan.enc_str],  # 冲突字段
+                                        update={datapan.file_unique_id: data['file_unique_id'],
+                                                datapan.file_id: data['file_id'],
+                                                datapan.bot_name: data['bot_name'],
+                                                datapan.wp_bot: data['wp_bot']}
+                                    ))
 
-                    query_sql.execute()
+                            query_sql.execute()
             
         except Exception as e:
             print(f"发生错误: {e}")
