@@ -20,7 +20,7 @@ class LYClass:
         self.client = client
     
 
-    def is_number(s):
+    def is_number(self,s):
         return bool(re.match(r'^-?\d+(\.\d+)?$', s))
 
     # 查找文字，若存在匹配的字串，則根據傳入的參數mode來處理，若mode=tobot,則用 fetch_media_from_enctext 函數處理。若 mode=encstr，則用 forward_encstr_to_encbot 函數處理; 
