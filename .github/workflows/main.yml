@@ -21,6 +21,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Show Public IP
+      run: curl -s ifconfig.me
+
+
     - name: Check for running workflows
       uses: actions/github-script@v6
       id: check-running
