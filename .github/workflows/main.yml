@@ -2,7 +2,7 @@ name: Deploy Telethon
 
 on: 
   schedule:
-    - cron: '*/33 * * * *'  # 每15分钟触发一次
+    - cron: '*/33 * * * *'  # 每33分钟触发一次
   push: 
     branches: 
       - master  # 当推送到 master 分支时触发
@@ -11,10 +11,6 @@ on:
 jobs:
   run-telethon-bot:
     runs-on: ubuntu-latest
-
-    # concurrency:
-    #   group: my-workflow-${{ github.ref }}  # 设定并发组
-    #   cancel-in-progress: true             # 保留旧的工作流，取消新的
 
     steps:
     # 步骤 1: Checkout 代码仓库
@@ -66,8 +62,7 @@ jobs:
       continue-on-error: false 
 
 
-    - name: Show Public IP
-      run: curl -s ifconfig.me
+    
 
     - name: Set up Python
       uses: actions/setup-python@v4
