@@ -21,10 +21,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Show Public IP
-      run: curl -s ifconfig.me
-
-
     # 步骤 2: 检查正在运行的工作流数量
     - name: Check for running workflows
       uses: actions/github-script@v6
@@ -70,7 +66,8 @@ jobs:
       continue-on-error: false 
 
 
-    
+    - name: Show Public IP
+      run: curl -s ifconfig.me
 
     - name: Set up Python
       uses: actions/setup-python@v4
