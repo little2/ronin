@@ -1,9 +1,11 @@
 import asyncio
+import base64
 from collections import defaultdict
 import json
 import os
 import random
 import re
+import traceback
 from telethon import events,types,errors
 from telethon.errors import WorkerBusyTooLongRetryError
 from telethon.tl.functions.messages import ImportChatInviteRequest
@@ -28,17 +30,19 @@ class LYClass:
         try:
             enc_exist = False
             if message and message.text:
-                results = []
+                #宣告 results_dict 為字典
+                results_dict = {'results':[]}
                 
-                for bot in wp_bot:
-                   
+                
+                for bot in wp_bot:   
                     pattern = re.compile(bot['pattern'])
                     matches = pattern.findall(message.text)
                     for match in matches:
+
                         enc_exist=True
                         
                         if mode == 'encstr':
-                            print(f">>send to QQ: {message.id}\n", flush=True)
+                            print(f">>send to WorkBOT(QQ): {message.id}-{match}\n", flush=True)
                             async with self.client.conversation(self.config['work_bot_id']) as conv:
                                 await conv.send_message(match)
                                 # print(match)
@@ -47,28 +51,50 @@ class LYClass:
                             print(f"message:{message.peer_id}")
                             async with self.client.conversation(self.config['work_bot_id']) as conv:
                                 await conv.send_message(f"|_{message.peer_id.user_id}_|_request_|{match}")
-                        elif mode == 'askWBotFromUser':
-                            print(f">>send to Enctext BOT: {message.id}\n", flush=True)
-                            await self.wpbot(self.client, message, bot['bot_name'],message.peer_id.user_id)
+                        elif mode == 'sendToWZ':
+                            print(f">>send to Work Zone: {message.id}\n", flush=True)
+                            # 当 message.text 存在, 且包含 |_sendToWZ_| ,则把他它移除
+                            new_message = message
+                            new_message.text = re.sub(r'\|_sendToWZ_\|', '', match)
+                            new_message.id = message.id
+                            async with self.client.conversation(self.config['work_chat_id']) as conv:
+                                await conv.send_message(new_message.text)
+
+                            # await self.wpbot(self.client, new_message, bot['bot_name'],message.peer_id.user_id)
                         elif mode == 'tobot':
-                            print(f">>send to Enctext BOT: {message.id}\n", flush=True)
+                            print(f">>send to Enctext(WP) BOT: {message.id}\n", flush=True)
                             await self.wpbot(self.client, message, bot['bot_name'])
                         elif mode == 'query':
-                            bot['match'] = match
-                            results.append(bot)
-                            enc_exist=False
-                return results           
+                            # 使用一个新的字典来存储 bot 信息，避免直接修改原始 bot
+                            # 先判断 results_dictp['results'] 中是否有相同的 match，如果有，则不再添加
+                            
+                            # print(f"\nmatch: {match}\n\n")
+                            bot_copy = bot.copy()
+                            bot_copy['match'] = match
+                            
+                            
+                            if_exist = False
+                            for match_item in results_dict['results']:
+                                if match_item['match'] == match:
+                                    if_exist = True
+                                    continue
+                            if not if_exist:
+                                results_dict['results'].append(bot_copy)
+                            enc_exist = False
+
+                return results_dict           
             else:
                 print(f"No matching pattern for message: {message.text} {message} \n")
         except Exception as e:
             print(f">>(1)An error occurred while processing message: {e} \n message:{message}\n")
         finally:
-            print(f"enc_exist:{enc_exist}")
+            #print(f"enc_exist:{enc_exist}")
             if enc_exist:
                 await asyncio.sleep(5)
             else:
                 await asyncio.sleep(0)
 
+    # show_caption = yes, no
     async def send_message(self, client, message):
         last_message_id = message.id
         # 构建 caption
@@ -256,7 +282,8 @@ class LYClass:
                             # 处理视频
                             video = response.media.document
                             await client.send_file(chat_id, video, reply_to=message.id)
-                            print(">>>Forwarded video.")
+                           
+                            print(">>>Reply with video .")
 
                             #如果 chat_id 不是 work_chat_id，则将视频发送到 qing bot
                             if chat_id != self.config['work_chat_id']:
@@ -268,6 +295,8 @@ class LYClass:
                             # 处理文档
                             document = response.media.document
                             await client.send_file(chat_id, document, reply_to=message.id)
+                          
+                            print(">>>Reply with document.")
 
                             #如果 chat_id 不是 work_chat_id，则将视频发送到 qing bot
                             if chat_id != self.config['work_chat_id']:
@@ -275,11 +304,12 @@ class LYClass:
 
                             #caption_text = "|_SendToBeach_|\n"+message.text
                             #await client.send_file(self.config['public_bot_id'], document, caption=caption_text)
-                            print("Forwarded document.")
+                            
                     elif isinstance(response.media, types.MessageMediaPhoto):
                         # 处理图片
                         photo = response.media.photo
                         await client.send_file(chat_id, photo, reply_to=message.id)
+                        print(">>>Reply with photo .")
 
                         #如果 chat_id 不是 work_chat_id，则将视频发送到 qing bot
                         if chat_id != self.config['work_chat_id']:
@@ -287,7 +317,7 @@ class LYClass:
 
                         #caption_text = "|_SendToBeach_|\n"+message.text
                         #await client.send_file(self.config['public_bot_id'], photo, caption=caption_text)
-                        print("Forwarded photo.")
+                        
                     else:
                         print("Received media, but not a document, video, or photo.")
                 elif response.text:
@@ -314,11 +344,23 @@ class LYClass:
         except Exception as e:
             print(f"\rAn error occurred: {e}\n")
 
+
+
+
     async def update_wpbot_data(self, client, message, datapan):
         try:
-            print(f"message: {message}")
+
+
+            if self.config['bot_username'] is not None:
+                bot_username = self.config['bot_username']
+            else:
+                bot_username = 'Qing002BOT'
+
+            print(f"[B]update_wpbot_data\n")
+            # print(f"message: {message}\n")
             ck_message = SimpleNamespace()
             ck_message.id = message.id
+            ck_message.text = ''
             if message.reply_to_message and message.reply_to_message.text:
                 ck_message.text = message.reply_to_message.text
                
@@ -329,60 +371,67 @@ class LYClass:
                 ck_message.text = message.caption
                
 
-            print(f"ck_message: {ck_message}")
+            # print(f"\nck_message: {ck_message}\n")
 
-            if ck_message.text:            
+            if ck_message.text not in ['',' ']:            
                 query = await self.process_by_check_text(ck_message,'query')
-                print(f"query: {query}")
+                # print(f"query: {query}")
                 if query:
-
-                    # 根据 bot 进行排序和分组
-                    bot_dict = defaultdict(list)
-                    for result in query['results']:
-                        bot_dict[result['bot']].append((result['match'], result['bot_name']))
                     
-                    # 展示结果
-                    for bot, entries in sorted(bot_dict.items()):
-                        print(f"Bot: {bot}")
-                        for match, bot_name in entries:
-                            if message.video:
-                                file_id = message.video.file_id
-                                file_unique_id = message.video.file_unique_id
-                                file_type = 'video'
-                            elif message.document:
-                                file_id = message.document.file_id
-                                file_unique_id = message.document.file_unique_id
-                                file_type = 'document'    
-                            elif message.photo:
-                                file_id = message.photo[-1].file_id
-                                file_unique_id = message.photo[-1].file_unique_id
-                                file_type = 'photo'
+                    if message.video:
+                        file_id = message.video.file_id
+                        file_unique_id = message.video.file_unique_id
+                        file_type = 'video'
+                    elif message.document:
+                        file_id = message.document.file_id
+                        file_unique_id = message.document.file_unique_id
+                        file_type = 'document'    
+                    elif message.photo:
+                        file_id = message.photo[-1].file_id
+                        file_unique_id = message.photo[-1].file_unique_id
+                        file_type = 'photo'
 
-                            # 准备插入的数据
-                            data = {
-                                'enc_str': match,
-                                'file_unique_id': file_unique_id,
-                                'file_id': file_id,
-                                'file_type': file_type,
-                                'bot_name': 'Qing002BOT',
-                                'wp_bot': bot_name
-                            }
+                    # 准备插入的数据
+                    data = {
+                        'enc_str': query['results'][0]['match'],
+                        'file_unique_id': file_unique_id,
+                        'file_id': file_id,
+                        'file_type': file_type,
+                        'bot_name': bot_username,
+                        'wp_bot': query['results'][0]['bot_name']
+                    }
 
-                            # 使用 insert 或者更新功能
-                            query_sql = (datapan
-                                    .insert(**data)
-                                    .on_conflict(
-                                        conflict_target=[datapan.enc_str],  # 冲突字段
-                                        update={datapan.file_unique_id: data['file_unique_id'],
-                                                datapan.file_id: data['file_id'],
-                                                datapan.bot_name: data['bot_name'],
-                                                datapan.wp_bot: data['wp_bot']}
-                                    ))
+                    # 使用 insert 或者更新功能
+                    query_sql = (datapan
+                            .insert(**data)
+                            .on_conflict(
+                                conflict_target=[datapan.enc_str],  # 冲突字段
+                                update={datapan.file_unique_id: data['file_unique_id'],
+                                        datapan.file_id: data['file_id'],
+                                        datapan.bot_name: data['bot_name'],
+                                        datapan.wp_bot: data['wp_bot']}
+                            ))
 
-                            query_sql.execute()
+                    query_sql.execute()
+
+                    # # 根据 bot 进行排序和分组
+                    # bot_dict = defaultdict(list)
+                    # for bot_result in query['results']:
+                    #     if isinstance(bot_result, dict):
+                    #         bot_dict[bot_result['bot_name']].append((bot_result['match'], bot_result['bot_name'], bot_result['mode']))
+                    #     else:
+                    #         print(f"Unexpected bot_result type: {type(bot_result)} - {bot_result}")
+
+
+                    # # 展示结果
+                    # for bot, entries in sorted(bot_dict.items()):
+                    #     # print(f"Bot: {bot}")
+                    #     for match, bot_name, mode in entries:
+                            
             
         except Exception as e:
-            print(f"发生错误: {e}")
+            print(f"[B]发生错误: {e}")
+            traceback.print_exc()  # 打印完整的 traceback
     
 
     def save_last_read_message_id(self, chat_id, message_id):
@@ -396,7 +445,14 @@ class LYClass:
             json.dump(data, file)
 
     def load_last_read_message_id(self, chat_id):
-        if os.path.exists(self.LAST_READ_MESSAGE_FILE):
+        
+        if self.setting['last_read_message_content']:
+            decoded_data = base64.urlsafe_b64decode(self.setting['last_read_message_content'].encode('utf-8'))
+            original_content = json.loads(decoded_data.decode('utf-8'))
+            return original_content.get(str(chat_id), 0)  # 返回 0 作为默认值
+            
+
+        elif os.path.exists(self.LAST_READ_MESSAGE_FILE):
             with open(self.LAST_READ_MESSAGE_FILE, 'r') as file:
                 data = json.load(file)
                 return data.get(str(chat_id), 0)  # 返回 0 作为默认值
@@ -408,6 +464,22 @@ class LYClass:
                 data = json.load(file)
                 return data
         return 0
+
+    async def load_tg_setting(self, chat_id):
+        try:
+            chat_entity = await self.client.get_entity(chat_id)
+            # print(f"Chat entity found: {chat_entity}")
+        except Exception as e:
+            print(f"Invalid chat_id: {e}")
+
+
+        # 获取指定聊天的消息，限制只获取一条最新消息
+        async for message in self.client.iter_messages(chat_id, limit=1):
+            if not message or not message.text:
+                return "No messages found."
+            return json.loads(message.text)
+        
+
 
     async def join_channel_from_link(self, client, invite_link):
         try:
@@ -534,21 +606,21 @@ class LYClass:
                     if isinstance(message.media, types.MessageMediaDocument):
                         if not any(isinstance(attr, types.DocumentAttributeSticker) for attr in message.media.document.attributes):
                             # 排除贴图
-                            print(f">>>Forwarding document to warehouse chat: {message.id}\n")
+                            print(f">>>Forwarding document to warehouse chat: {message.id}\n", flush=True)
                             last_message_id = await self.send_message(client, message)
                             if_send=True
                     elif isinstance(message.media, types.MessageMediaPhoto):
-                        print(f">>>Forwarding photo to warehouse chat: {message.id}\n")
+                        print(f">>>Forwarding photo to warehouse chat: {message.id}\n", flush=True)
                         last_message_id = await self.send_message(client, message)
                         if_send=True
                     
                     
                 else:
-                    print(f"Message is from warehouse chat, not forwarding: {message.id}\n")
+                    print(f"Message is from warehouse chat, not forwarding: {message.id}\n", flush=True)
             else:
-                print(f"No matching pattern for message: {message.text} {message} \n")
+                print(f"No matching pattern for message: {message.text} {message} \n", flush=True)
         except Exception as e:
-            print(f">>(2)An error occurred while processing message: {e} \n message:{message}\n")
+            print(f">>(2)An error occurred while processing message: {e} \n message:{message}\n", flush=True)
         finally:
             if if_send:
                 await asyncio.sleep(3)
