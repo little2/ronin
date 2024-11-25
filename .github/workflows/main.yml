@@ -25,48 +25,49 @@ jobs:
       run: curl -s ifconfig.me
 
 
+    # 步骤 2: 检查正在运行的工作流数量
     - name: Check for running workflows
       uses: actions/github-script@v6
       id: check-running
       with:
         script: |
-            const currentRunId = context.runId;  // 当前工作流的运行ID
-            const workflowId = 'main.yml';      // 替换为你的工作流文件名
-            const maxRetries = 28;               // 最大重试次数
-            let retries = 0;
+          const currentRunId = context.runId;  // 当前工作流的运行ID
+          const workflowId = 'main.yml';      // 替换为你的工作流文件名
+          const maxRetries = 28;               // 最大重试次数
+          let retries = 0;
 
-            while (retries < maxRetries) {
-                const { data } = await github.rest.actions.listWorkflowRuns({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    workflow_id: workflowId,
-                    status: 'in_progress',
-                    per_page: 30
-                });
+          while (retries < maxRetries) {
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: workflowId,
+              status: 'in_progress',
+              per_page: 10
+            });
 
-                // 获取所有正在运行的工作流（包括当前工作流）
-                const runningWorkflows = data.workflow_runs.filter(run => run.id);
+            // 获取所有正在运行的工作流（包括当前工作流）
+            const runningWorkflows = data.workflow_runs.filter(run => run.id);
 
-                if (runningWorkflows.length === 3) {
-                    // 如果有三个工作流正在运行，取消当前工作流
-                    core.setFailed("Three workflows are already running. Canceling current workflow.");
-                    return;
-                } else if (runningWorkflows.length === 2) {
-                    // 如果有两个工作流正在运行，等待 1 分钟后重试
-                    console.log("Two workflows are running. Retrying in 1 minute...");
-                    await new Promise(resolve => setTimeout(resolve, 60000)); // 等待 1 分钟
-                    retries++;
-                } else {
-                    // 如果只有一个工作流正在运行，继续执行
-                    console.log("Only one workflow is running. Proceeding...");
-                    break;
-                }
+            if (runningWorkflows.length === 3) {
+              // 如果有三个工作流正在运行，取消当前工作流
+              core.setFailed("Three workflows are already running. Canceling current workflow.");
+              return;
+            } else if (runningWorkflows.length === 2) {
+              // 如果有两个工作流正在运行，等待 1 分钟后重试
+              console.log("Two workflows are running. Retrying in 1 minute...");
+              await new Promise(resolve => setTimeout(resolve, 60000)); // 等待 1 分钟
+              retries++;
+            } else {
+              // 如果只有一个工作流正在运行，继续执行
+              console.log("Only one workflow is running. Proceeding...");
+              break;
             }
+          }
 
-            if (retries === maxRetries) {
-                core.setFailed("Max retries reached. Workflow did not start.");
-            }
-      continue-on-error: false   
+          if (retries === maxRetries) {
+            core.setFailed("Max retries reached. Workflow did not start.");
+          }
+      continue-on-error: false 
 
 
     
