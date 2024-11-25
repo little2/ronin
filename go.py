@@ -87,7 +87,7 @@ async def main():
                 continue
 
             # 设一个黑名单列表，如果 entity.id 在黑名单列表中，则跳过 
-            blacklist = [2131062766, 1766929647, 1781549078, 6701952909, 6366395646,93372553,2197546676]  # Example blacklist with entity IDs
+            blacklist = [2131062766, 1766929647, 1781549078, 6701952909, 6366395646,93372553,2197546676, 2022425523]  # Example blacklist with entity IDs
             # blacklist = [2154650877,2190384328,2098764817,1647589965,1731239234,1877274724,2131062766, 1766929647, 1781549078, 6701952909, 6366395646,93372553,2215190216,2239552986,2215190216,2171778803,1704752058]
 
             enclist = [2012816724,2239552986,2215190216,7061290326,2175483382,2252083262] 
@@ -114,19 +114,13 @@ async def main():
             if dialog.unread_count > 0 and (dialog.is_group or dialog.is_channel or dialog.is_user):
                 count_per_chat=0
 
-               
-                
-
                 time.sleep(0.5)  # 每次请求之间等待0.5秒
 
                 # if entity.id == tgbot.config['work_chat_id']:
                 #     last_read_message_id = 14244
                 # else:
                 last_read_message_id = tgbot.load_last_read_message_id(entity.id)
-                
-
-
-                
+                          
                 print(f"\r\n>Reading messages from entity {entity.id}/{entity_title} - {last_read_message_id} - U:{dialog.unread_count} \n", flush=True)
                 async for message in client.iter_messages(entity, min_id=last_read_message_id, limit=50, reverse=True, filter=InputMessagesFilterEmpty()):
                     NEXT_MESSAGE = False
@@ -188,6 +182,17 @@ async def main():
                             media_count = media_count + 1
                             count_per_chat = count_per_chat +1
                             last_read_message_id = last_message_id
+
+                        elif entity.id == 827297596:
+                            print(f"{entity.id} \n", flush=True)
+                            async with client.conversation(1808436284) as conv:
+                                photo = message.media.photo
+                                
+                                forwarded_message = await conv.send_file(photo)
+                                print(f"forwarded_message: {message} {message.id}")
+                                await client.delete_messages(entity.id, message.id)
+                             
+
 
                         elif tgbot.config['warehouse_chat_id']!=0 and entity.id != tgbot.config['work_chat_id'] and entity.id != tgbot.config['warehouse_chat_id']:
                             
@@ -260,8 +265,8 @@ async def main():
                                         break
                                 else:
                                     # print(f"'{message.text}' ->matches: {match_str}  {entity.id} {tgbot.config['link_chat_id']}. =>forward\n")
-                                   
-                                    await client.send_message(tgbot.config['work_bot_id'], f"{match_str}")  
+                                    if match_str not in ['https://t.me/FilesDrive_BLGA_bot']:
+                                        await client.send_message(tgbot.config['work_bot_id'], f"{match_str}")  
                             # print(f"matches: 178\n")
                                
                                      
@@ -275,9 +280,23 @@ async def main():
                                 break
 
 
-                            await tgbot.process_by_check_text(message,'tobot')
-                            media_count = media_count + 1
-                            count_per_chat = count_per_chat +1
+                            query = await tgbot.process_by_check_text(message, 'query')
+                            if query:
+                                for bot_result in query['results']:
+                                    if isinstance(bot_result, dict):
+                                        if(bot_result['title'] == 'salai'):
+                                            
+                                            await tgbot.client.delete_messages(
+                                                entity=entity.id,  # 对话的 chat_id
+                                                message_ids=message.id  # 刚刚发送消息的 ID
+                                            )
+
+
+                                        else:
+                                            await tgbot.process_by_check_text(message, 'tobot')
+                                            media_count += 1
+                                            count_per_chat += 1
+
                         elif dialog.is_group or dialog.is_channel:
                         
                             if entity.id in enclist:
@@ -319,8 +338,8 @@ async def main():
                         elif dialog.is_user:
                             if '|_request_|' in message.text:
                                 await tgbot.process_by_check_text(message,'request')
-                            elif '|_askWBotFromUser_|' in message.text:
-                                await tgbot.process_by_check_text(message,'askWBotFromUser')
+                            elif '|_sendToWZ_|' in message.text:
+                                await tgbot.process_by_check_text(message,'sendToWZ')
                             else:
                                 await tgbot.process_by_check_text(message,'encstr')
                             
