@@ -446,7 +446,7 @@ class LYClass:
 
     def load_last_read_message_id(self, chat_id):
         
-        if self.setting['last_read_message_content']:
+        if self.setting.get('last_read_message_content'):
             decoded_data = base64.urlsafe_b64decode(self.setting['last_read_message_content'].encode('utf-8'))
             original_content = json.loads(decoded_data.decode('utf-8'))
             return original_content.get(str(chat_id), 0)  # 返回 0 作为默认值
