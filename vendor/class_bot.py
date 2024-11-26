@@ -11,6 +11,7 @@ from telethon.errors import WorkerBusyTooLongRetryError
 from telethon.tl.functions.messages import ImportChatInviteRequest
 from vendor.wpbot import wp_bot  # 导入 wp_bot
 from types import SimpleNamespace
+from telethon.tl.types import PeerUser, PeerChat, PeerChannel
 
 class LYClass:
 
@@ -480,8 +481,8 @@ class LYClass:
 
     async def load_tg_setting(self, chat_id, message_thread_id=0):
         try:
-            chat_entity = await self.client.get_entity(chat_id)
-            # print(f"Chat entity found: {chat_entity}")
+            chat_entity = await self.client.get_entity(int(chat_id))
+            print(f"Chat entity found: {chat_entity}")
         except Exception as e:
             print(f"Invalid chat_id: {e}")
 
@@ -489,7 +490,8 @@ class LYClass:
         # 获取指定聊天的消息，限制只获取一条最新消息
         # 使用 get_messages 获取指定 thread_id 的消息
         try:
-            messages = await self.client.get_messages(chat_id, limit=1, reply_to=message_thread_id)
+            messages = await self.client.get_messages(chat_entity, limit=1, reply_to=message_thread_id)
+            print(f"Messages found: {messages}")
         except Exception as e:
             print(f"Error fetching messages: {e}")
             return
