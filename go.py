@@ -1,3 +1,6 @@
+from telethon import errors
+
+import json
 from telethon import TelegramClient, sync
 import os
 from vendor.class_bot import LYClass  # 导入 LYClass
@@ -36,6 +39,8 @@ try:
         'warehouse_chat_id': int(os.getenv('WAREHOUSE_CHAT_ID', 0)),  # 默认值为0
         'link_chat_id': int(os.getenv('LINK_CHAT_ID', 0)),
         'key_word': os.getenv('KEY_WORD'),
+        'setting_chat_id': int(os.getenv('SETTING_CHAT_ID'),0),
+        'setting_tread_id': int(os.getenv('SETTING_THREAD_ID'),0),
         'show_caption': os.getenv('SHOW_CAPTION')
     }
 
@@ -53,7 +58,48 @@ max_media_count = 55  # 10个媒体文件
 max_count_per_chat = 11  # 每个对话的最大消息数
 max_break_time = 90  # 休息时间
 
+async def process_chats(client, data):
+    last_read_message_content = data["last_read_message_content"]
+    last_read_message_content2 = data["last_read_message_content"]
+    blacklist = data["blacklist"]
 
+    # 用于存储需要删除的 chat_id
+    to_remove = []
+
+    # 遍历 last_read_message_content
+    for chat_id, message_id in last_read_message_content.copy().items():
+        try:
+            # 检查 chat_id 是否有效
+            entity = await client.get_entity(int(chat_id))  # 获取 chat_id 的实体
+            print(f"Chat ID {chat_id} exists. Entity: {entity.title if hasattr(entity, 'title') else 'User'}")
+        
+        except errors.RPCError as e:
+            # 若 chat_id 不存在，记录下来
+            print(f"Chat ID {chat_id} does not exist or user is not in it. Error: {e}")
+           
+            last_read_message_content.pop(chat_id, None)
+            data["last_read_message_content"] = last_read_message_content
+            continue  # 继续处理下一个 chat_id 
+
+        except ValueError:
+            # 若 chat_id 无效（非数字或解析失败）
+            print(f"Chat ID {chat_id} is invalid.")
+            to_remove.append(chat_id)
+            last_read_message_content.pop(chat_id, None)
+            data["last_read_message_content"] = last_read_message_content
+            
+            continue  # 继续处理下一个 chat_id  
+
+    try:
+        config_str2 = json.dumps(data, indent=2)  # 转换为 JSON 字符串
+        async with client.conversation(tgbot.config['setting_chat_id']) as conv:
+            await conv.send_message(config_str2, reply_to=tgbot.config['setting_tread_id'])
+    except Exception as e:
+        print(f"Error sending message to setting_chat_id: {e}", flush=True)
+
+    # 更新 JSON 数据
+    data["last_read_message_content"] = last_read_message_content
+    return data
 
 async def main():
     await client.start(phone_number)
@@ -66,6 +112,12 @@ async def main():
         print(f"Error sending message to work_bot_id: {e}", flush=True)
         return
     
+  
+    
+    tgbot.setting = await tgbot.load_tg_setting(tgbot.config['setting_chat_id'], tgbot.config['setting_tread_id'])
+    
+    # tgbot.setting = await process_chats(client, tgbot.setting)
+    # print("Updated JSON:", tgbot.setting)
 
     while True:
         NEXT_CYCLE = False
@@ -87,12 +139,14 @@ async def main():
                 continue
 
             # 设一个黑名单列表，如果 entity.id 在黑名单列表中，则跳过 
-            blacklist = [2131062766, 1766929647, 1781549078, 6701952909, 6366395646,93372553,2197546676, 2022425523]  # Example blacklist with entity IDs
-            # blacklist = [2154650877,2190384328,2098764817,1647589965,1731239234,1877274724,2131062766, 1766929647, 1781549078, 6701952909, 6366395646,93372553,2215190216,2239552986,2215190216,2171778803,1704752058]
 
-            enclist = [2012816724,2239552986,2215190216,7061290326,2175483382,2252083262] 
+            blacklist = []
+            if hasattr(tgbot,'setting') and tgbot.setting['blacklist']:
+                blacklist = tgbot.setting['blacklist']
 
-            skip_vaildate_list =[2201450328]
+            enclist = []
+
+            skip_vaildate_list =[]
 
             if entity.id in blacklist:
                 NEXT_DIALOGS = True
@@ -371,6 +425,10 @@ async def main():
         
 
 
+
+        config_str2 = json.dumps(tgbot.setting, indent=2)  # 转换为 JSON 字符串
+        async with client.conversation(tgbot.config['setting_chat_id']) as conv:
+            await conv.send_message(config_str2, reply_to=tgbot.config['setting_tread_id'])
 
         print("\nExecution time is " + str(int(elapsed_time)) + f" seconds. Continuing next cycle... after {max_break_time} seconds.\n\n", flush=True)
         print(f"-\n", flush=True)
