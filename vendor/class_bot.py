@@ -436,7 +436,12 @@ class LYClass:
 
     def save_last_read_message_id(self, chat_id, message_id):
         data = {str(chat_id): message_id}
-        if os.path.exists(self.LAST_READ_MESSAGE_FILE):
+        if hasattr(self, 'setting') and self.setting.get('last_read_message_content'):
+            existing_data = self.setting['last_read_message_content']
+            existing_data.update(data)
+            data = existing_data
+
+        elif os.path.exists(self.LAST_READ_MESSAGE_FILE):
             with open(self.LAST_READ_MESSAGE_FILE, 'r') as file:
                 existing_data = json.load(file)
             existing_data.update(data)
@@ -445,14 +450,17 @@ class LYClass:
             json.dump(data, file)
 
     def load_last_read_message_id(self, chat_id):
-        
-        # 如果 self.setting 存在，则使用 self.setting 中的数据
+        ## 如果 self 存在屬性 setting 且 setting 中存在 last_read_message_content
         if hasattr(self, 'setting'):
-            decoded_data = base64.urlsafe_b64decode(self.setting['last_read_message_content'].encode('utf-8'))
-            original_content = json.loads(decoded_data.decode('utf-8'))
-            return original_content.get(str(chat_id), 0)  # 返回 0 作为默认值
-       
-            
+            try:
+                # decoded_data = base64.urlsafe_b64decode(self.setting['last_read_message_content'].encode('utf-8'))
+                # original_content = json.loads(decoded_data.decode('utf-8'))
+                # return original_content.get(str(chat_id), 0)  # 返回 0 作为默认值
+                return self.setting['last_read_message_content'].get(str(chat_id), 0)  # 返回 0 作为默认值
+            except Exception as e:
+                print(f"Error loading last read message content: {e}")
+                return 0
+
 
         elif os.path.exists(self.LAST_READ_MESSAGE_FILE):
             with open(self.LAST_READ_MESSAGE_FILE, 'r') as file:
@@ -467,7 +475,7 @@ class LYClass:
                 return data
         return 0
 
-    async def load_tg_setting(self, chat_id):
+    async def load_tg_setting(self, chat_id, message_thread_id=0):
         try:
             chat_entity = await self.client.get_entity(chat_id)
             # print(f"Chat entity found: {chat_entity}")
@@ -476,11 +484,30 @@ class LYClass:
 
 
         # 获取指定聊天的消息，限制只获取一条最新消息
-        async for message in self.client.iter_messages(chat_id, limit=1):
-            if not message or not message.text:
-                return "No messages found."
-            return json.loads(message.text)
+        # 使用 get_messages 获取指定 thread_id 的消息
+        try:
+            messages = await self.client.get_messages(chat_id, limit=1, reply_to=message_thread_id)
+        except Exception as e:
+            print(f"Error fetching messages: {e}")
+            return
         
+
+   
+
+
+        if not messages or not messages[0].text:
+            return "No messages found."
+
+        # 确认 messages[0] 中否为 json , 若是则返回, 不是则返回 None
+        if messages[0].text.startswith('{') and messages[0].text.endswith('}'):
+            
+            return json.loads(messages[0].text)
+        else:
+            
+            return json.loads("{}")
+        
+
+
 
 
     async def join_channel_from_link(self, client, invite_link):
