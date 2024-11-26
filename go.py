@@ -112,9 +112,9 @@ async def main():
         print(f"Error sending message to work_bot_id: {e}", flush=True)
         return
     
-  
+    setting_chat_id = tgbot.config['setting_chat_id']
     
-    tgbot.setting = await tgbot.load_tg_setting(tgbot.config['setting_chat_id'], tgbot.config['setting_tread_id'])
+    tgbot.setting = await tgbot.load_tg_setting(setting_chat_id, tgbot.config['setting_tread_id'])
     
     # tgbot.setting = await process_chats(client, tgbot.setting)
     # print("Updated JSON:", tgbot.setting)
