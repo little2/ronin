@@ -436,10 +436,13 @@ class LYClass:
 
     def save_last_read_message_id(self, chat_id, message_id):
         data = {str(chat_id): message_id}
-        if hasattr(self, 'setting') and self.setting.get('last_read_message_content'):
+        if hasattr(self, 'setting') and isinstance(self.setting, dict) and 'last_read_message_content' in self.setting:
             existing_data = self.setting['last_read_message_content']
-            existing_data.update(data)
-            data = existing_data
+            if isinstance(existing_data, dict):
+                existing_data.update(data)
+                data = existing_data
+            else:
+                print("Error: 'last_read_message_content' is not a dictionary.")
 
         elif os.path.exists(self.LAST_READ_MESSAGE_FILE):
             with open(self.LAST_READ_MESSAGE_FILE, 'r') as file:
