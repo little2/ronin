@@ -25,7 +25,7 @@ jobs:
         script: |
           const currentRunId = context.runId;  // 当前工作流的运行ID
           const workflowId = 'main.yml';      // 替换为你的工作流文件名
-          const maxRetries = 28;               // 最大重试次数
+          const maxRetries = 1;               // 最大重试次数
           let retries = 0;
 
           while (retries < maxRetries) {
@@ -41,7 +41,7 @@ jobs:
             const runningWorkflows = data.workflow_runs.filter(run => run.id);
 
 
-            if (runningWorkflows.length === 1) {
+            if (runningWorkflows.length === 0) {
                // 如果只有一个工作流正在运行，继续执行
               console.log("Only one workflow is running. Proceeding...");
               break;
