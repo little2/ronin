@@ -41,7 +41,7 @@ jobs:
             const runningWorkflows = data.workflow_runs.filter(run => run.id);
 
 
-            if (runningWorkflows.length === 0) {
+            if (runningWorkflows.length === 1) {
                // 如果只有一个工作流正在运行，继续执行
               console.log("Only one workflow is running. Proceeding...");
               break;
