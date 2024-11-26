@@ -40,19 +40,26 @@ jobs:
             // 获取所有正在运行的工作流（包括当前工作流）
             const runningWorkflows = data.workflow_runs.filter(run => run.id);
 
-            if (runningWorkflows.length === 3) {
+
+            if (runningWorkflows.length === 1) {
+               // 如果只有一个工作流正在运行，继续执行
+              console.log("Only one workflow is running. Proceeding...");
+              break;
+            } 
+            else if (runningWorkflows.length === 3) {
               // 如果有三个工作流正在运行，取消当前工作流
-              core.setFailed("Three workflows are already running. Canceling current workflow.");
+              core.setFailed("3 workflows are already running. Canceling current workflow.");
               return;
             } else if (runningWorkflows.length === 2) {
               // 如果有两个工作流正在运行，等待 1 分钟后重试
-              console.log("Two workflows are running. Retrying in 1 minute...");
-              await new Promise(resolve => setTimeout(resolve, 60000)); // 等待 1 分钟
-              retries++;
+              // console.log("Two workflows are running. Retrying in 1 minute...");
+              // await new Promise(resolve => setTimeout(resolve, 60000)); // 等待 1 分钟
+              // retries++;
+              core.setFailed("2 workflows are already running. Canceling current workflow.");
+              return;
             } else {
-              // 如果只有一个工作流正在运行，继续执行
-              console.log("Only one workflow is running. Proceeding...");
-              break;
+              core.setFailed("Other workflows are already running. Canceling current workflow.");
+              return;
             }
           }
 
