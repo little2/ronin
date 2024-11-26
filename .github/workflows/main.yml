@@ -132,6 +132,9 @@ jobs:
         PUBLIC_BOT_ID: ${{ secrets.PUBLIC_BOT_ID }}
         WAREHOUSE_CHAT_ID: ${{ secrets.WAREHOUSE_CHAT_ID }}
         LINK_CHAT_ID: ${{ secrets.LINK_CHAT_ID }}
+        SETTING_CHAT_ID: ${{ secrets.SETTING_CHAT_ID }}
+        SETTING_THREAD_ID: ${{ secrets.SETTING_THREAD_ID }}
+        SESSION_STRING: ${{ secrets.SESSION_STRING }}
       run: |
         python go.py
 
