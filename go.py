@@ -140,9 +140,13 @@ async def main():
 
             # 设一个黑名单列表，如果 entity.id 在黑名单列表中，则跳过 
 
-            blacklist = []
-            if hasattr(tgbot,'setting') and tgbot.setting['blacklist']:
-                blacklist = tgbot.setting['blacklist']
+            # 若setting中有blacklist，则使用setting中的blacklist
+
+
+
+            # 获取 blacklist，若不存在则默认为空列表
+            blacklist = tgbot.setting.get('blacklist', [])
+            
 
             enclist = []
 
