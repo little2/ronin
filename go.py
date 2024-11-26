@@ -144,8 +144,8 @@ async def main():
 
 
 
-            # 获取 blacklist，若不存在则默认为空列表
-            blacklist = tgbot.setting.get('blacklist', [])
+            # 如果 tgbot.setting 不存在，使用空字典作为默认值
+            blacklist = (tgbot.setting or {}).get('blacklist', [])
             
 
             enclist = []
