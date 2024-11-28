@@ -131,7 +131,6 @@ class LYClass:
             sender = await client.get_entity(message.from_id)
 
             sender_title = f"{sender.first_name}"
-
             # if sender.last_name is not None then sender_title = f"{sender.first_name} {sender.last_name}"
             if sender.last_name:
                 sender_title = f"{sender.first_name} {sender.last_name}"
@@ -148,10 +147,19 @@ class LYClass:
             caption_text = None
         
         try:
+            # print(f"Message: {message}")
+
+            
+
             if hasattr(message, 'grouped_id') and message.grouped_id:
+                
                 # 获取相册中的所有消息
-                album_messages = await client.get_messages(message.peer_id, limit=100)
+                # print(f"\r\nPeer ID: {message.peer_id}",flush=True)
+                album_messages = await client.get_messages(message.peer_id, limit=100, min_id=message.id,reverse=True)
+                # print(f"\r\nAlbum messages: {album_messages}",flush=True)
+
                 album = [msg for msg in album_messages if msg.grouped_id == message.grouped_id]
+                # print(f"\r\nAlbum: {album}",flush=True)
                 if album:
                     await asyncio.sleep(0.5)  # 间隔80秒
                     last_message_id = max(row.id for row in album)
@@ -173,7 +181,7 @@ class LYClass:
                     # await client.send_file(self.config['warehouse_chat_id'], video, reply_to=message.id, caption=caption_text, parse_mode='html')
                     
                     await client.send_file(self.config['warehouse_chat_id'], video,  caption=caption_text, parse_mode='html')
-                    print(">>Forwarded video.\n")
+                    print(">>>>Forwarded video.\n")
                     
                     # 调用新的函数
                     #await self.send_video_to_filetobot_and_publish(client, video, message)
@@ -182,14 +190,14 @@ class LYClass:
                     document = message.media.document
                     # await client.send_file(self.config['warehouse_chat_id'], document, reply_to=message.id, caption=caption_text, parse_mode='html')
                     await client.send_file(self.config['warehouse_chat_id'], document,  caption=caption_text, parse_mode='html')
-                    print(">>Forwarded document.\n")
+                    print(">>>>Forwarded document.\n")
             elif isinstance(message.media, types.MessageMediaPhoto):
                 # 处理图片
                 photo = message.media.photo
                 await client.send_file(self.config['warehouse_chat_id'], photo,  caption=caption_text, parse_mode='html')
                 
                 # await client.send_file(self.config['warehouse_chat_id'], photo, reply_to=message.id, caption=caption_text, parse_mode='html')
-                print(">>Forwarded photo.\n")
+                print(">>>>Forwarded photo.\n")
             else:
                 print("Received media, but not a document, video, photo, or album.")
         except WorkerBusyTooLongRetryError:
@@ -481,17 +489,20 @@ class LYClass:
 
     async def load_tg_setting(self, chat_id, message_thread_id=0):
         try:
+            chat_id = self.format_chat_id(chat_id)
             chat_entity = await self.client.get_entity(int(chat_id))
-            print(f"Chat entity found: {chat_entity}")
+            # print(f"Chat entity found: {chat_entity}")
         except Exception as e:
             print(f"Invalid chat_id: {e}")
-
+            print("Traceback:\r\n")
+            traceback.print_exc()  # 打印完整的异常堆栈信息，包含行号
+            return None  # 提前返回，避免后续逻辑报错
 
         # 获取指定聊天的消息，限制只获取一条最新消息
         # 使用 get_messages 获取指定 thread_id 的消息
         try:
             messages = await self.client.get_messages(chat_entity, limit=1, reply_to=message_thread_id)
-            print(f"Messages found: {messages}")
+            # print(f"Messages found: {messages}")
         except Exception as e:
             print(f"Error fetching messages: {e}")
             return
@@ -512,7 +523,16 @@ class LYClass:
             return json.loads("{}")
         
 
-
+    def format_chat_id(self, chat_id):
+        """
+        格式化聊天 ID，如果为正数，转换为 Telegram 内部格式
+        :param chat_id: 聊天 ID
+        :return: 格式化后的聊天 ID
+        """
+        if self.is_number(str(chat_id)):
+            if int(chat_id) > 0:
+                return f"-100{chat_id}"
+        return chat_id
 
 
     async def join_channel_from_link(self, client, invite_link):
