@@ -46,7 +46,8 @@ jobs:
       if: steps.check-running.outputs.hasOtherRuns == 'true'
       run: |
         echo "Another workflow is running. Exiting this run."
-        exit 0
+        exit 1
+      continue-on-error: true
 
     
 
@@ -109,6 +110,7 @@ jobs:
 
 
     - name: Run Telethon script
+      if: steps.check-running.outputs.hasOtherRuns == 'false'
       env:
         API_ID: ${{ secrets.API_ID }}
         API_HASH: ${{ secrets.API_HASH }}
