@@ -35,13 +35,18 @@ jobs:
           const otherRuns = data.workflow_runs.filter(run => run.id !== currentRunId);
           core.setOutput('hasOtherRuns', otherRuns.length > 0 ? 'true' : 'false');
           if (otherRuns.length > 0) {
-            core.log("Another workflow is already running.");
-            exit 0
+            console.log("Another workflow is already running.");
+           
           } else {
             console.log("No other running workflows.");
           }
       continue-on-error: false  
 
+    - name: Exit if another workflow is running
+      if: steps.check-running.outputs.hasOtherRuns == 'true'
+      run: |
+        echo "Another workflow is running. Exiting this run."
+        exit 0
 
     
 
