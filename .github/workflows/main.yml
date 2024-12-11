@@ -35,7 +35,8 @@ jobs:
           const otherRuns = data.workflow_runs.filter(run => run.id !== currentRunId);
           core.setOutput('hasOtherRuns', otherRuns.length > 0 ? 'true' : 'false');
           if (otherRuns.length > 0) {
-            core.setFailed(`Another workflow is already running.`);
+            core.log("Another workflow is already running.");
+            exit 0
           } else {
             console.log("No other running workflows.");
           }
