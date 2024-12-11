@@ -33,6 +33,7 @@ jobs:
           });
           // 过滤掉当前工作流
           const otherRuns = data.workflow_runs.filter(run => run.id !== currentRunId);
+          core.setOutput('hasOtherRuns', otherRuns.length > 0 ? 'true' : 'false');
           if (otherRuns.length > 0) {
             core.setOutput('hasOtherRuns', otherRuns.length > 0 ? 'true' : 'false');
             # core.setFailed(`Another workflow is already running.`);
