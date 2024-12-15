@@ -116,8 +116,8 @@ async def main():
     
     tgbot.setting = await tgbot.load_tg_setting(setting_chat_id, tgbot.config['setting_tread_id'])
     
-    # tgbot.setting = await process_chats(client, tgbot.setting)
-    # print("Updated JSON:", tgbot.setting)
+    tgbot.setting = await process_chats(client, tgbot.setting)
+    print("Updated JSON:", tgbot.setting)
 
     while True:
         NEXT_CYCLE = False
