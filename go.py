@@ -58,7 +58,66 @@ max_media_count = 55  # 10个媒体文件
 max_count_per_chat = 11  # 每个对话的最大消息数
 max_break_time = 90  # 休息时间
 
+
+async def validate_chat(client, chat_id):
+    try:
+        # 跳过特殊系统 ID
+        if str(chat_id) == "777000":
+            print("777000 is a system ID, skipping validation.")
+            return True
+
+        # 获取实体
+        entity = await client.get_entity(chat_id)
+        print(f"Chat ID {chat_id} exists. Entity: {entity.title if hasattr(entity, 'title') else 'User'}")
+
+        # 根据实体类型进一步处理
+        if isinstance(entity, Channel) or isinstance(entity, Chat):
+            # 检查是否有权限查看成员
+            me = await client.get_me()  # 获取当前 Bot 用户
+            async for user in client.iter_participants(chat_id):
+                if user.id == me.id:  # 检查自己是否是成员
+                    print(f"Bot is a member of {entity.title}")
+                    return True
+            print(f"Bot is not a member of {entity.title}")
+            return False
+        elif isinstance(entity, User):
+            print(f"Chat ID {chat_id} is a valid User: {entity.first_name}")
+            return True
+        else:
+            print(f"Unknown chat type for Chat ID {chat_id}")
+    except errors.RPCError as e:
+        print(f"Chat ID {chat_id} is invalid or inaccessible. Error: {e}")
+    except ValueError as e:
+        print(f"Chat ID {chat_id} is not valid. Error: {e}")
+        # traceback.print_exc()  # 打印完整的异常堆栈信息
+    return False
+
 async def process_chats(client, data):
+    last_read_message_content = data.get("last_read_message_content", {}).copy()
+
+    for chat_id in list(last_read_message_content.keys()):
+        
+        is_valid = await validate_chat(client, int(chat_id))
+        if not is_valid:
+            # 移除无效 chat_id
+            last_read_message_content.pop(chat_id, None)
+    
+    # 更新数据
+    data["last_read_message_content"] = last_read_message_content
+
+    # 尝试发送数据到指定会话
+    try:
+        config_str2 = json.dumps(data, indent=2)
+        async with client.conversation(tgbot.config['setting_chat_id']) as conv:
+            await conv.send_message(config_str2, reply_to=tgbot.config['setting_tread_id'])
+    except Exception as e:
+        print(f"Error sending message to setting_chat_id: {e}", flush=True)
+
+    return data
+
+
+
+async def process_chats2(client, data):
     last_read_message_content = data["last_read_message_content"]
     last_read_message_content2 = data["last_read_message_content"]
     blacklist = data["blacklist"]
@@ -147,6 +206,8 @@ async def main():
             # 如果 tgbot.setting 不存在，使用空字典作为默认值
             blacklist = (tgbot.setting or {}).get('blacklist', [])
             
+            if tgbot.setting['warehouse_chat_id']:
+                tgbot.config['warehouse_chat_id'] = int(tgbot.setting['warehouse_chat_id'])
 
             enclist = []
 
@@ -182,7 +243,10 @@ async def main():
                 print(f"\r\n>Reading messages from entity {entity.id}/{entity_title} - {last_read_message_id} - U:{dialog.unread_count} \n", flush=True)
                 async for message in client.iter_messages(entity, min_id=last_read_message_id, limit=50, reverse=True, filter=InputMessagesFilterEmpty()):
                     NEXT_MESSAGE = False
-                   
+                    #如果 message.message 是 "doc+vzvd_WpvvhUc0tI+2wYG_RQAAsU=_mda"，则跳过
+                    if message.message == "doc+vzvd_WpvvhUc0tI+2wYG_RQAAsU=_mda":
+                        continue
+
                     if message.id <= last_read_message_id:
                         continue
                    
