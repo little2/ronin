@@ -182,11 +182,7 @@ async def main():
         NEXT_CYCLE = False
         async for dialog in client.iter_dialogs():
             NEXT_DIALOGS = False
-            
-
-
             entity = dialog.entity
-           
             # 跳过来自 WAREHOUSE_CHAT_ID 的对话
             if entity.id == tgbot.config['warehouse_chat_id']:
                 NEXT_DIALOGS = True
@@ -206,8 +202,12 @@ async def main():
             # 如果 tgbot.setting 不存在，使用空字典作为默认值
             blacklist = (tgbot.setting or {}).get('blacklist', [])
             
-            if tgbot.setting['warehouse_chat_id']:
+            # 如果 tgbot.setting 中的 warehouse_chat_id 有值，则更新 tgbot.config 中的 warehouse_chat_id
+            if 'warehouse_chat_id' in tgbot.setting:
                 tgbot.config['warehouse_chat_id'] = int(tgbot.setting['warehouse_chat_id'])
+
+
+           
 
             enclist = []
 
@@ -216,8 +216,6 @@ async def main():
             if entity.id in blacklist:
                 NEXT_DIALOGS = True
                 continue                
-        
-
            
             # 打印处理的实体名称（频道或群组的标题）
             if isinstance(entity, Channel) or isinstance(entity, Chat):
@@ -244,8 +242,6 @@ async def main():
                 async for message in client.iter_messages(entity, min_id=last_read_message_id, limit=50, reverse=True, filter=InputMessagesFilterEmpty()):
                     NEXT_MESSAGE = False
                     #如果 message.message 是 "doc+vzvd_WpvvhUc0tI+2wYG_RQAAsU=_mda"，则跳过
-                    if message.message == "doc+vzvd_WpvvhUc0tI+2wYG_RQAAsU=_mda":
-                        continue
 
                     if message.id <= last_read_message_id:
                         continue
@@ -379,17 +375,17 @@ async def main():
                                     match_str = 'https://t.me/' + match_str
 
                                 if entity.id == tgbot.config['link_chat_id']:
-                                    # print(f"'{message.text}' ->matches: {match_str}. =>join\n")
+                                    print(f"'{message.text}' ->matches: {match_str}. =>join\n")
                                     join_result = await tgbot.join_channel_from_link(client, match_str)  
                                     if not join_result:
                                         print(f"Failed to join channel from link: {match_str}", flush=True)
                                         NEXT_DIALOGS = True
                                         break
                                 else:
-                                    # print(f"'{message.text}' ->matches: {match_str}  {entity.id} {tgbot.config['link_chat_id']}. =>forward\n")
+                                    print(f"'{message.text}' ->matches: {match_str}  {entity.id} {tgbot.config['link_chat_id']}. =>forward\n")
                                     if match_str not in ['https://t.me/FilesDrive_BLGA_bot']:
                                         await client.send_message(tgbot.config['work_bot_id'], f"{match_str}")  
-                            # print(f"matches: 178\n")
+                            print(f"matches: 178\n")
                                
                                      
                         elif entity.id == tgbot.config['work_chat_id']:
