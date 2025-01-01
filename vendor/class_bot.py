@@ -9,6 +9,8 @@ import traceback
 from telethon import events,types,errors
 from telethon.errors import WorkerBusyTooLongRetryError
 from telethon.tl.functions.messages import ImportChatInviteRequest
+from telethon.tl.types import Message, ReplyInlineMarkup, KeyboardButtonCallback
+
 from vendor.wpbot import wp_bot  # 导入 wp_bot
 from types import SimpleNamespace
 from telethon.tl.types import PeerUser, PeerChat, PeerChannel
@@ -63,7 +65,7 @@ class LYClass:
 
                             # await self.wpbot(self.client, new_message, bot['bot_name'],message.peer_id.user_id)
                         elif mode == 'tobot':
-                            print(f">>send to Enctext(WP) BOT: {message.id}\n", flush=True)
+                            print(f">>send to Enctext(WP) BOT: {message.id} {message.text} {bot['bot_name']}\n", flush=True)
                             await self.wpbot(self.client, message, bot['bot_name'])
                         elif mode == 'query':
                             # 使用一个新的字典来存储 bot 信息，避免直接修改原始 bot
@@ -260,6 +262,59 @@ class LYClass:
                 await publicbot_conv.send_file(filetobot_response.media, caption=filetobot_response.message)
                 print(">>>>Forwarded filetobot response to qing bot with caption.")
 
+    async def has_load_more_button(album_messages):
+        for msg in album_messages:
+            # 确保消息有 reply_markup
+            if isinstance(msg.reply_markup, ReplyInlineMarkup):
+                for row in msg.reply_markup.rows:
+                    for button in row.buttons:
+                        if isinstance(button, KeyboardButtonCallback) and button.text == '⏩继续加载⏪':
+                            return True
+        return False
+
+    async def click_load_more_button(client, album_messages):
+        for msg in album_messages:
+            # 获取 chat_id
+            if isinstance(msg.peer_id, PeerUser):
+                chat_id = msg.peer_id.user_id
+                
+            # 检查 reply_markup 是否存在
+            if msg.reply_markup:
+                for row in msg.reply_markup.rows:
+                    for button in row.buttons:
+                        # 找到目标按钮并点击
+                        if isinstance(button, KeyboardButtonCallback) and button.text == '⏩继续加载⏪':
+                            # 点击按钮
+                            await client.send_message(chat_id, button)
+                            print(f"Clicked '⏩继续加载⏪' in chat_id: {chat_id}")
+                            return True # 点击后直接退出
+        print("Button '⏩继续加载⏪' not found.")
+        return False
+
+
+    async def check_more(self, album_messages):
+        if await self.click_load_more_button(album_messages):
+            print(">>>Album has 'Load more' button.")
+
+            # 获取按钮列表
+            buttons = album_messages.buttons
+
+            if buttons:
+                # 假设我们点击第一个按钮
+                button_to_click = buttons[0][0]  # 第一行第一个按钮
+                print(f"准备点击按钮: {button_to_click.text}")
+
+                # 发送点击请求
+                await self.client.send_message(album_messages.peer.chat_id, button_to_click)
+
+            else:
+                print("消息中没有按钮") 
+
+            await asyncio.sleep(1)
+            await self.load_more(album_messages)
+        else:
+            print(">>>Album has no 'Load more' button.")
+
 
     async def wpbot(self, client, message, bot_username, chat_id=None):
         try:
@@ -283,8 +338,27 @@ class LYClass:
                     await client.send_message(chat_id, "the bot was timeout", reply_to=message.id)
                     print("Response timeout.")
                     return
+                # print(f"Response: {response}")
 
-                if response.media:
+                if hasattr(response, 'grouped_id') and response.grouped_id:
+                
+                    # 获取相册中的所有消息
+                    # print(f"\r\nPeer ID: {response.peer_id}",flush=True)
+
+                    album_messages = await client.get_messages(response.peer_id, limit=100, min_id=response.id,reverse=True)
+
+                    # print(f"\r\nAlbum messages: {album_messages}",flush=True)
+
+                    album = [msg for msg in album_messages if msg.grouped_id == response.grouped_id]
+                    # print(f"\r\nAlbum: {album}",flush=True)
+
+                    if album:
+                        await asyncio.sleep(0.5)  # 间隔80秒
+                        await client.send_file(self.config['work_chat_id'], album, reply_to=message.id)
+                        await self.check_more(album)
+                    
+
+                elif response.media:
                     if isinstance(response.media, types.MessageMediaDocument):
                         mime_type = response.media.document.mime_type
                         if mime_type.startswith('video/'):

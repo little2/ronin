@@ -55,7 +55,7 @@ wp_bot = [
         'bot_name': 'jyypbot',
         'id': '6873643118',
         'mode': 'link',
-        'pattern': r'https:\/\/t\.me\/filetobot\?start=([0-9a-fA-F\-]+)',
+        'pattern': r'https:\/\/t\.me\/jyypbot\?start=([0-9a-fA-F\-]+)',
         'message_thread_id': '29'
     },
     {
@@ -87,7 +87,7 @@ wp_bot = [
         'bot_name': 'wangpanbot',
         'id': '5231326048',
         'mode': 'link',
-        'pattern': r'https:\/\/t\.me\/WangPanBOT\?start=(file\w{14,20})',
+        'pattern': r'https:\/\/t\.me\/(?i)WangPanBOT\?start=(file\w{14,20})',
         'message_thread_id': '32'
     },
     {
